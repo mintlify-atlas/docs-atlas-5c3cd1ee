@@ -1,7 +1,7 @@
 ---
-title: "Run the Polysona Local-First Dashboard"
+title: "Run the Polysona Local Dashboard: Setup and API Reference"
 sidebarTitle: "Dashboard"
-description: "Launch the Hono + React dashboard with bun run dev to visualize personas, monitor agent status, inspect the content pipeline, and explore QA simulations locally."
+description: "Launch the Hono and React dashboard with bun run dev to visualize personas, monitor agent status, and inspect the content pipeline locally."
 ---
 
 Polysona includes a local-first fullstack dashboard to inspect your persona data and pipeline state without leaving your machine. The dashboard is built on a Hono server (running on Bun) and a React 19 client, communicates over a set of `/api/*` routes, and exposes everything the pipeline produces — personas, agent status, content drafts, and published files — as readable views. It does not write to or modify any persona files.

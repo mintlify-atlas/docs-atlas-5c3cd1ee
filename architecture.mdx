@@ -143,12 +143,18 @@ bun run dev
 # Open http://localhost:3000
 ```
 
-The server exposes two API routes used by the dashboard client:
+The server exposes several API routes consumed by the dashboard client:
 
 | Route | Purpose |
 |---|---|
 | `GET /api/personas` | Returns the list of personas discovered under `personas/` |
-| `GET /api/status` | Returns system version, active persona, and pipeline status |
+| `GET /api/personas/:id` | Returns full persona, nuance, and accounts data for a specific persona |
+| `GET /api/personas/:id/interview-log` | Returns the interview log entries for a specific persona |
+| `GET /api/personas/:id/qa-simulation` | Returns virtual-follower QA simulation scores for a persona |
+| `GET /api/content/drafts` | Returns the list of draft content files under `content/drafts/` |
+| `GET /api/content/published` | Returns the list of published content files under `content/published/` |
+| `GET /api/agents/status` | Returns status and skill-file presence for each of the 5 agents |
+| `GET /api/status` | Returns persona count, content count, last activity timestamp, and system version |
 
 The dashboard is served by a Hono server defined in `server/index.ts`. In production mode (or when `dist/index.html` exists), it serves the Vite-built React client from `./dist`. In development, it serves the raw client from `./client`.
 
