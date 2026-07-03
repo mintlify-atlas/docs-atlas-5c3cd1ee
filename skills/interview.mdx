@@ -1,0 +1,80 @@
+---
+title: "$interview / /interview: Start a Persona Interview Session"
+sidebarTitle: "interview"
+description: "Run a psychology-based multi-framework interview to extract and log your persona. Resumes from the last session or starts fresh with McAdams warmup."
+---
+
+The `$interview` / `/interview` command launches a deep psychology-based extraction session driven by the **profiler** agent. It is the first and most fundamental step in the Polysona pipeline — without a completed interview, no other skill has persona data to work with. Run it once to establish a baseline, or return to it at any time to continue deepening the record.
+
+## Invocation
+
+<CodeGroup>
+```bash Codex
+$interview
+```
+
+```bash Claude Code
+/interview
+```
+</CodeGroup>
+
+## What it does
+
+The profiler agent follows a **resume-first** protocol on every invocation:
+
+- Reads `personas/_active.md` to determine the active persona directory (falls back to `default`).
+- Attempts to load `personas/{active}/persona.md` and locate the `## interview-log` section.
+- If a prior log exists, it reads the latest entries and **resumes** from the last meaningful point — picking up the last framework covered, open `GAP:` hypotheses, and any unresolved tensions — rather than restarting from zero.
+- Confirms continuity in its first prompt, naming the prior framework before continuing the depth-spiral.
+
+When no persona file exists, the profiler starts a **fresh interview**:
+
+- Opens with the **McAdams narrative warmup**: asks for life chapters, one high point, one low point, and one turning point.
+- Captures narrative language verbatim before moving on.
+- Transitions to **Laddering** only after narrative anchors are established.
+
+Across both protocols, the following execution rules always apply:
+
+- All **10 psychology frameworks** are exercised over the full interview flow (time allocation is not necessarily equal).
+- Contradictions are flagged inline using the `GAP:` format and written to the interview-log.
+- The session stays in extraction mode — no persona structuring happens here.
+- The log is **append-only**: historical entries are never overwritten.
+
+## Prerequisites
+
+None for a first run. For a resumed session, `personas/{active}/persona.md` must already exist with an `## interview-log` section.
+
+<Info>
+If you have multiple personas, make sure `personas/_active.md` points to the correct persona directory before invoking `$interview`.
+</Info>
+
+## Output
+
+All interview data is appended to:
+
+```text
+personas/{active}/persona.md   ← interview-log section
+```
+
+Each run adds timestamped log entries. Contradictions appear inline as:
+
+```text
+GAP: [description of the contradiction or unresolved tension]
+```
+
+No structuring or synthesis is performed at this stage — that happens in downstream steps.
+
+## Guardrails & Notes
+
+<Warning>
+The profiler operates in extraction-only mode. Do not expect structured persona artifacts (`nuance.md`, `accounts.md`) to be generated here — those are produced by the Polysona structuring engine after the interview.
+</Warning>
+
+- The append-only rule is strict: deleting or editing past log entries will break resume detection.
+- `GAP:` rows are log entries marking contradictions — they are not framework names and should not be treated as such.
+- If the active persona path resolves to a directory that does not exist, the profiler falls back to `default`.
+- Framework coverage is tracked per run; the profiler will prioritise frameworks not yet represented in the existing log.
+
+## Related agent
+
+The `$interview` skill is executed by the **profiler** agent. See the [Profiler agent page](/agents/profiler) for details on its 10-framework interview flow, defense-bypass prompts, and log extraction behaviour.

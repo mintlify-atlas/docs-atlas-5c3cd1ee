@@ -1,0 +1,77 @@
+---
+title: "$qa / /qa: Evaluate Drafts with Virtual Followers"
+sidebarTitle: "qa"
+description: "Run the virtual-follower agent in isolated fork mode to score your latest draft and return the TOP 5 recommendations with rationale and audience-fit scores."
+---
+
+The `$qa` / `/qa` command dispatches the **virtual-follower** agent in an isolated `context: fork` evaluation mode to review the latest content draft and return the five most impactful recommendations. Each recommendation carries a score and concise rationale. Use `$qa` after `$content` to validate a draft before it moves to publish — catching persona-misalignment, weak CTAs, or platform-pattern issues before they go live.
+
+## Invocation
+
+<CodeGroup>
+```bash Codex
+$qa
+```
+
+```bash Claude Code
+/qa
+```
+</CodeGroup>
+
+## What it does
+
+- Runs in **`context: fork`** — an isolated evaluation context that does not share state with the main session, ensuring objective scoring.
+- Reads `personas/_active.md` to resolve the active persona and loads `personas/{active}/accounts.md`.
+- Automatically picks up the **latest saved file** in `content/drafts/` as the evaluation target when no explicit draft is provided.
+- Triggers the **virtual-follower** agent to run the full QA pipeline: multi-audience simulation, rolemodel-gap scoring, and platform pattern checks.
+- Returns the **TOP 5 recommendations** with scores and concise rationale.
+- Saves the full QA report to `content/qa/` **before** returning the response.
+- Re-reads the saved QA report and includes the confirmed saved path in the response.
+- If no draft file exists in `content/drafts/`, the agent reports that QA is blocked rather than inventing an evaluation.
+
+## Prerequisites
+
+A saved draft must exist before running QA:
+
+```text
+content/drafts/         ← must contain at least one draft file (from $content)
+personas/{active}/accounts.md   ← must exist for audience context
+```
+
+<Warning>
+If `content/drafts/` is empty or does not exist, `$qa` is blocked and will report so explicitly. Run `$content [platform]` first to generate a draft.
+</Warning>
+
+## Output
+
+The QA report is saved to:
+
+```text
+content/qa/
+```
+
+The response includes the confirmed file path and the TOP 5 recommendations inline. Example structure:
+
+```text
+Saved: content/qa/2025-07-01_qa_report.md
+
+TOP 5 Recommendations
+1. [Score: 8/10] — [Recommendation with rationale]
+2. [Score: 7/10] — [Recommendation with rationale]
+3. ...
+```
+
+## Guardrails & Notes
+
+<Note>
+The `context: fork` isolation means the virtual-follower's evaluation cannot modify persona files or draft files. It is a read-only, side-effect-free analysis pass.
+</Note>
+
+- QA always targets the **most recently modified** file in `content/drafts/` by default. If you have multiple drafts and want to target a specific one, ensure it is the latest file or rename it accordingly.
+- The agent will not fabricate a QA report if no draft is present. A clear blocked status message is returned instead.
+- The virtual-follower must write a QA file before reporting success. If you receive a response without a confirmed `content/qa/` path, the save failed — re-run the command.
+- QA report scores reflect persona-audience fit, rolemodel-gap alignment, and platform pattern adherence — not general content quality metrics.
+
+## Related agent
+
+The `$qa` skill is executed by the **virtual-follower** agent. See the [Virtual-follower agent page](/agents/virtual-follower) for details on multi-audience simulation, rolemodel-gap scoring, and TOP 5 draft recommendation logic.

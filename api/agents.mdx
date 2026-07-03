@@ -1,0 +1,156 @@
+---
+title: "Agents and System Status REST API"
+sidebarTitle: "Agents & Status"
+description: "REST endpoints for checking agent health, skill file existence, and overall system status including persona count, content count, and last activity timestamp."
+---
+
+The agents and status endpoints give you visibility into the health of Polysona's five built-in agents and the overall state of your local installation. Agent status reports whether each agent's Markdown definition file and corresponding skill file exist on disk. The system status endpoint surfaces counts and timestamps that summarize the current state of your persona and content data.
+
+---
+
+## GET /api/agents/status
+
+Returns the status of all five Polysona agents. For each agent, the response includes whether its agent definition file (`agents/<name>.md`) and skill file (under `skills/`) exist on disk. The `status` field is always `"idle"` in the current version — runtime execution state is not yet tracked by the API.
+
+```bash
+curl http://localhost:3000/api/agents/status
+```
+
+**Example response**
+
+```json
+[
+  {
+    "name": "profiler",
+    "description": "Deep psychology interviewer",
+    "badge": "10 frameworks",
+    "status": "idle",
+    "agentFileExists": true,
+    "skillFileExists": true,
+    "skillCount": 1,
+    "lastActivity": null
+  },
+  {
+    "name": "trendsetter",
+    "description": "Trend detector",
+    "badge": "WebSearch",
+    "status": "idle",
+    "agentFileExists": true,
+    "skillFileExists": false,
+    "skillCount": 0,
+    "lastActivity": null
+  },
+  {
+    "name": "content-writer",
+    "description": "Platform content generator",
+    "badge": "5 platforms",
+    "status": "idle",
+    "agentFileExists": true,
+    "skillFileExists": true,
+    "skillCount": 1,
+    "lastActivity": null
+  },
+  {
+    "name": "virtual-follower",
+    "description": "QA simulator",
+    "badge": "context: fork",
+    "status": "idle",
+    "agentFileExists": true,
+    "skillFileExists": true,
+    "skillCount": 1,
+    "lastActivity": null
+  },
+  {
+    "name": "admin",
+    "description": "Publisher and tracker",
+    "badge": "feedback loop",
+    "status": "idle",
+    "agentFileExists": false,
+    "skillFileExists": false,
+    "skillCount": 0,
+    "lastActivity": null
+  }
+]
+```
+
+The five agents are always returned in the following fixed order:
+
+| Name | Description | Badge | Skill File Path |
+|------|-------------|-------|-----------------|
+| `profiler` | Deep psychology interviewer | `10 frameworks` | `skills/interview/SKILL.md` |
+| `trendsetter` | Trend detector | `WebSearch` | `skills/trend/SKILL.md` |
+| `content-writer` | Platform content generator | `5 platforms` | `skills/content/SKILL.md` |
+| `virtual-follower` | QA simulator | `context: fork` | `skills/qa/SKILL.md` |
+| `admin` | Publisher and tracker | `feedback loop` | `skills/publish/SKILL.md` |
+
+<ResponseField name="(array)" type="object[]">
+  Array of agent status objects, one per agent, in the fixed order listed above.
+
+  <Expandable title="agent status object">
+    <ResponseField name="name" type="string">
+      Agent identifier. One of `profiler`, `trendsetter`, `content-writer`, `virtual-follower`, or `admin`.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Short human-readable description of the agent's role.
+    </ResponseField>
+    <ResponseField name="badge" type="string">
+      Short capability badge displayed in the dashboard (e.g. `"10 frameworks"`, `"WebSearch"`).
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Current execution state. Always `"idle"` in the current version of Polysona.
+    </ResponseField>
+    <ResponseField name="agentFileExists" type="boolean">
+      Whether the agent's Markdown definition file exists at `agents/<name>.md`.
+    </ResponseField>
+    <ResponseField name="skillFileExists" type="boolean">
+      Whether the agent's skill file exists at its expected path under `skills/`. Requires both the skill subdirectory and the `SKILL.md` file to be present.
+    </ResponseField>
+    <ResponseField name="skillCount" type="number">
+      `1` if the skill subdirectory exists under `skills/`, `0` otherwise.
+    </ResponseField>
+    <ResponseField name="lastActivity" type="null">
+      Always `null` in the current version. Reserved for future runtime tracking.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## GET /api/status
+
+Returns a high-level summary of the Polysona installation: how many persona directories exist, how many content files are present across both pipeline stages, when any persona or content file was last modified, and the current Polysona version.
+
+```bash
+curl http://localhost:3000/api/status
+```
+
+**Example response**
+
+```json
+{
+  "personaCount": 2,
+  "contentCount": 5,
+  "lastActivity": "2026-03-29T08:34:12.000Z",
+  "version": "1.3.0"
+}
+```
+
+<ResponseField name="personaCount" type="number">
+  Number of subdirectories found under `personas/`. Each directory is counted as one persona regardless of which PLOON files it contains.
+</ResponseField>
+
+<ResponseField name="contentCount" type="number">
+  Combined count of non-hidden files in `content/drafts/` and `content/published/`. Equivalent to `drafts.length + published.length`.
+</ResponseField>
+
+<ResponseField name="lastActivity" type="string | null">
+  ISO 8601 timestamp of the most recently modified file across all persona PLOON files (`persona.md`, `nuance.md`, `accounts.md`) and all draft and published content files. Returns `null` if no files are found.
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  The running Polysona version. Currently `"1.3.0"`.
+</ResponseField>
+
+<Tip>
+  Use `GET /api/status` as a lightweight health check in scripts or CI workflows. A non-null `lastActivity` combined with a non-zero `personaCount` confirms that the installation has been set up and is actively in use.
+</Tip>

@@ -1,47 +1,172 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Polysona in Minutes"
+sidebarTitle: "Quickstart"
+description: "Install Polysona, add it to Codex or Claude Code, and run your first psychology interview in under 5 minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+This guide walks you through cloning Polysona, connecting it to your AI agent runtime of choice, and completing your first psychology interview. By the end, you will have a working persona extracted and ready to drive the content pipeline. The whole process takes under five minutes.
 
 ## Prerequisites
 
-Before you begin, you must have:
+Before you begin, make sure you have the following available:
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
+- **Node.js** (v18 or later) or **Bun** (v1.0 or later) installed on your machine
+- **Codex** (OpenAI) or **Claude Code** (Anthropic) available in your development environment
+- A terminal open and ready
 
-## Get started
+## Installation and Setup
 
-<Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+<Tabs>
+  <Tab title="Codex">
+    Codex is the primary integration target for Polysona. `AGENTS.md` is auto-recognized by Codex, and repo skills are auto-discovered from `.agents/skills`.
 
-    ```bash
-    npm install your-package
-    ```
-  </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+    <Steps>
+      <Step title="Clone the repository">
+        Clone Polysona and navigate into the project directory.
 
-    ```bash
-    your-cli init
-    ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+        ```bash
+        git clone https://github.com/LilMGenius/polysona.git && cd polysona
+        ```
+      </Step>
 
-    ```bash
-    your-cli start
-    ```
-  </Step>
-</Steps>
+      <Step title="Install dependencies">
+        Install all required packages using Bun.
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+        ```bash
+        bun install
+        ```
+      </Step>
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+      <Step title="Sync Codex skills">
+        This repo mirrors `./skills` into `./.agents/skills` for Codex compatibility. Run the sync script to make sure the latest skills are available.
+
+        ```bash
+        bun run codex:skills:sync
+        ```
+
+        Alternatively, you can run the script directly:
+
+        ```bash
+        node ./scripts/sync-codex-skills.mjs
+        ```
+
+        <Note>
+          If an updated skill does not appear immediately in Codex after syncing, restart your Codex session. Codex caches skill definitions at session start.
+        </Note>
+      </Step>
+
+      <Step title="Start a Codex session">
+        Open a Codex session in the polysona repo directory. Codex will automatically detect and load `AGENTS.md`, making all persona agents and skills available immediately.
+      </Step>
+
+      <Step title="Run your first interview">
+        In your Codex session, trigger the profiler agent to begin the deep psychology interview.
+
+        ```
+        $interview
+        ```
+
+        The profiler will guide you through a structured interview using 10 psychology frameworks. When complete, Polysona structures the results into `persona.md`, `nuance.md`, and `accounts.md` under `personas/default/`.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Claude Code">
+    Claude Code integrates with Polysona through its plugin system. A local marketplace manifest and plugin definition are included in the repo.
+
+    <Steps>
+      <Step title="Clone the repository">
+        Clone Polysona and navigate into the project directory.
+
+        ```bash
+        git clone https://github.com/LilMGenius/polysona.git && cd polysona
+        ```
+      </Step>
+
+      <Step title="Install dependencies">
+        Install all required packages using Bun.
+
+        ```bash
+        bun install
+        ```
+      </Step>
+
+      <Step title="Add the local marketplace">
+        Register the Polysona local marketplace with Claude Code so it can discover the plugin.
+
+        ```bash
+        claude plugin marketplace add ./.claude-plugin/marketplace.json
+        ```
+      </Step>
+
+      <Step title="Install the Polysona plugin">
+        Install the plugin from the local marketplace into your Claude Code environment.
+
+        ```bash
+        claude plugin install polysona
+        ```
+      </Step>
+
+      <Step title="Start a Claude Code session">
+        Open a Claude Code session in the polysona repo directory. The plugin skills will be available as slash commands.
+      </Step>
+
+      <Step title="Run your first interview">
+        In your Claude Code session, trigger the profiler agent to begin the psychology interview.
+
+        ```
+        /interview
+        ```
+
+        The profiler will guide you through the same 10-framework interview flow. Results are structured into `personas/default/` upon completion.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Running the Full Pipeline
+
+After completing the interview, you have a structured persona. The full content pipeline flows through five stages in sequence.
+
+```
+$interview → $introduce → $trend → $content [platform] → $qa → $publish
+```
+
+Run `$introduce` (or `/introduce`) at the start of any new session to inject the active persona into the agent context before generating content. Then follow the pipeline in order.
+
+**Example: generating a LinkedIn post**
+
+```
+$introduce
+$trend
+$content linkedin
+$qa
+$publish
+```
+
+## Command Reference
+
+The following commands are available in both Codex (`$command`) and Claude Code (`/command`) sessions.
+
+| Command | Purpose |
+|---|---|
+| `$interview` / `/interview` | Start a deep psychology interview using 10 frameworks (profiler agent) |
+| `$introduce` / `/introduce` | Inject the current active persona into the session context |
+| `$trend` / `/trend` | Scan your domain for trending topics filtered to your persona (trendsetter agent) |
+| `$content [platform]` / `/content [platform]` | Generate persona-conditioned drafts for the specified platform (content-writer agent) |
+| `$qa` / `/qa` | Simulate follower and rolemodel reactions, score drafts, and surface the top 5 (virtual-follower agent) |
+| `$publish` / `/publish` | Publish the selected draft and capture engagement metadata (admin agent) |
+| `$status` / `/status` | Display the active persona summary and current pipeline status |
+| `$export` / `/export` | Export persona-derived instructions into `CLAUDE.md` and `AGENTS.md` for use in another workspace |
+
+<Note>
+  The `[platform]` argument for `$content` accepts: `x`, `threads`, `linkedin`, `naver`, or `brunch`. Always specify the platform so the content-writer can apply the correct format, length, and tone patterns.
+</Note>
+
+## Next Steps
+
+Once your persona is set up and you have run your first pipeline cycle, explore these resources to go deeper.
+
+- **[Architecture](/architecture)** — Understand how the orchestrator, agents, skills, and data layer fit together.
+- **[Agents](/agents)** — Read the full specification for each of the five agents.
+- **[Skills](/skills)** — Explore the 8 skills and how they are stored and loaded per runtime.

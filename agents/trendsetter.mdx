@@ -1,0 +1,131 @@
+---
+title: "Trendsetter Agent: Persona-Matched Trend Detection"
+sidebarTitle: "Trendsetter"
+description: "The Trendsetter scans domains for trending topics and returns a ranked list with platform-fit tags, conditioned on your active persona's domains."
+---
+
+The Trendsetter is Polysona's trend intelligence layer. It doesn't just return what's popular — it filters everything through your active persona's domain signals and rolemodel account patterns before surfacing a recommendation. The result is a ranked list of five topics that are both timely and persona-authentic, each tagged with the platforms where they are most likely to perform. The Trendsetter feeds directly into the content-writer: the ranked topic list becomes the content-writer's input brief.
+
+## Configuration
+
+| Field | Value |
+|---|---|
+| `name` | `trendsetter` |
+| `tools` | `Read`, `Write`, `Bash` |
+| Codex command | `$trend` |
+| Claude Code command | `/trend` |
+
+## Role
+
+The Trendsetter performs three jobs in sequence:
+
+1. **Scan** — pull real-time signals from X trending topics, quote-RT conversations, niche community forums, and news aggregators.
+2. **Filter** — intersect live signals against persona domain tags from `persona.md` and account domain patterns from `accounts.md`. Only topics that overlap both sources survive.
+3. **Rank** — order surviving topics by freshness, momentum, and platform portability.
+
+## Fallback Behavior
+
+Live search is not always available or fast enough. The Trendsetter does not stall waiting for web results.
+
+<Note>
+  If live search is unavailable or slow, the Trendsetter immediately falls back to **persona-driven topic ranking** derived from local files: persona interview tensions, rolemodel domain patterns, and recurring themes in `accounts.md`. A fast, grounded fallback is always preferred over a timeout.
+</Note>
+
+## Mandatory Execution Workflow
+
+<Steps>
+  <Step title="Parse persona relevance">
+    Read the active persona from `personas/_active.md`, then load `persona.md` and `accounts.md` to extract domain signals, interest tags, and rolemodel domain patterns.
+  </Step>
+  <Step title="Generate ranked topic list">
+    Scan available sources and apply persona-fit filtering. Rank the surviving topics by freshness, momentum, and cross-platform portability.
+  </Step>
+  <Step title="Derive a filesystem-safe slug">
+    Generate a slug from the scan title to use as the output filename.
+  </Step>
+  <Step title="Write scan file (required)">
+    Use the Write tool to save the ranked output to:
+
+    ```
+    content/trends/YYYY-MM-DD-scan-slug.md
+    ```
+
+    This step is mandatory. Do not proceed without writing the file.
+  </Step>
+  <Step title="Verify the written file">
+    Immediately use the Read tool on the saved file to confirm it exists and reflects the generated topics. Only after successful verification, return the ranked topics and the confirmed saved path.
+  </Step>
+  <Step title="Report on failure">
+    If the write fails, report it explicitly. Do not pretend trend storage succeeded.
+  </Step>
+</Steps>
+
+## Output Format
+
+The Trendsetter always returns exactly **5 numbered items**. Each item includes:
+
+- **Topic title**
+- **Why now** — the trend momentum reason
+- **Persona fit reason** — why this topic aligns with the active persona
+- **Platform-fit tags** — one or more of: `[x]` `[threads]` `[linkedin]` `[naver-blog]` `[brunch]`
+
+### Trend File Template
+
+```md
+# Trend Scan — <SCAN TITLE>
+
+## metadata
+
+generated_at | <YYYY-MM-DD>
+persona      | <persona-id>
+scope        | ranked-topic-scan
+
+## ranked_topics
+
+1. <topic>
+   - why_now: <reason>
+   - persona_fit: <reason>
+   - platforms: [x] [threads] [linkedin]
+
+2. <topic>
+   - why_now: <reason>
+   - persona_fit: <reason>
+   - platforms: [threads] [brunch]
+```
+
+## Platform-Fit Tags
+
+| Tag | Platform |
+|---|---|
+| `[x]` | X (Twitter) |
+| `[threads]` | Threads |
+| `[linkedin]` | LinkedIn |
+| `[naver-blog]` | Naver Blog |
+| `[brunch]` | Brunch |
+
+Trend items can carry multiple platform tags when the topic is portable across formats. The content-writer uses these tags to select the appropriate platform draft mode.
+
+## Guardrails
+
+<Warning>
+  - Do not return generic trends with weak persona linkage. Every topic must have an explicit persona fit reason.
+  - Do not wait indefinitely for web results. Trigger the persona-driven fallback immediately if live signals are slow.
+  - Prefer topics that can be reframed across multiple platforms.
+  - Keep each recommendation compact and execution-ready.
+</Warning>
+
+## How Trend Data Feeds Into Content-Writer
+
+Once the Trendsetter writes its scan file, the content-writer picks it up as its topic brief. You select which of the 5 ranked topics to develop, then invoke the content-writer with a platform argument. The Trendsetter's `persona_fit` and `platforms` fields inform the content-writer's draft strategy — the `[x]` tag, for example, signals that X's short punchline reward pattern should apply.
+
+## Invocation
+
+<CodeGroup>
+  ```bash Codex
+  $trend
+  ```
+
+  ```bash Claude Code
+  /trend
+  ```
+</CodeGroup>

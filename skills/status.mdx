@@ -1,0 +1,81 @@
+---
+title: "$status / /status: View Persona Health and Pipeline Status"
+sidebarTitle: "status"
+description: "Display a real-time snapshot of active personas, interview coverage, and content pipeline stage counts — grounded strictly in files that are present on disk."
+---
+
+The `$status` / `/status` command displays a quick, file-grounded snapshot of the Polysona system state. It shows how many personas are active, what the last interview footprint looks like, and how many files exist at each stage of the content pipeline. Run it at any time to check where you are before deciding which skill to invoke next.
+
+## Invocation
+
+<CodeGroup>
+```bash Codex
+$status
+```
+
+```bash Claude Code
+/status
+```
+</CodeGroup>
+
+## What it does
+
+`$status` reads from disk and assembles a system snapshot covering:
+
+- **Active personas count** — number of persona directories present under `personas/`.
+- **Last interview footprint** — derived from the `## interview-log` entries in the active `persona.md`, including which frameworks have been covered.
+- **Content pipeline stage counts** — exact file counts from:
+  - `content/trends/` — saved trend scans
+  - `content/drafts/` — generated draft files
+  - `content/qa/` — QA reports
+  - `content/published/` — published content files
+- **Pipeline readiness** — a stage-by-stage view of the pipeline: `interview → trend → content → qa → publish`, indicating which stages have been completed.
+
+No agent is dispatched. `$status` operates entirely from loaded files in the current session context.
+
+## Prerequisites
+
+`$status` has no hard prerequisites — it is safe to run at any time, including before any persona has been created. Empty or missing directories are reported as such rather than causing an error.
+
+## Output
+
+A human-readable system snapshot is printed inline. Example structure:
+
+```text
+── Polysona Status ──────────────────────────────────────────
+
+Personas
+  Active persona : default
+  Total personas : 2
+
+Interview Footprint (default)
+  Frameworks covered : 6 / 10
+  Open GAP entries   : 3
+  Last log entry     : [excerpt]
+
+Content Pipeline
+  Trend files    : 4
+  Draft files    : 7
+  QA reports     : 5
+  Published      : 3
+
+Pipeline Readiness
+  [✓] interview   [✓] trend   [✓] content   [✓] qa   [✓] publish
+```
+
+## Guardrails & Notes
+
+<Warning>
+Status reports are strictly grounded in loaded files. The following rules are enforced to prevent hallucinated status information:
+</Warning>
+
+- **Only report facts present in loaded files.** Do not invent psychology framework names, audience segments, or pipeline components that are not explicitly present in the files.
+- **Framework coverage is exact.** If the `interview-log` names 6 frameworks, report 6. Do not infer or guess the identity of unlisted frameworks from the global project spec.
+- **Missing frameworks are reported by count, not by name.** If a framework was not covered, report "4 frameworks not yet covered" — do not invent placeholder names.
+- **`GAP:` rows are log entries.** They mark contradictions or unresolved tensions. They are not substitute names for missing psychology frameworks and must not be treated as such.
+- **Counts are exact.** File counts come from `content/trends/`, `content/drafts/`, `content/qa/`, and `content/published/` directly. Do not assume or approximate.
+- **Missing sections are reported as missing.** If `nuance.md` or `accounts.md` does not exist, say it is missing — do not infer completion from partial data.
+
+## Related agents
+
+`$status` has no dedicated agent — it reads directly from disk. To act on what you see in the status output, use the appropriate skill: [`$interview`](/skills/interview) to deepen persona coverage, [`$trend`](/skills/trend) to add trend scans, [`$content`](/skills/content) to generate drafts, [`$qa`](/skills/qa) to evaluate them, or [`$publish`](/skills/publish) to finalise.

@@ -1,0 +1,61 @@
+---
+title: "$introduce / /introduce: Inject Persona into the Active Session"
+sidebarTitle: "introduce"
+description: "Load persona identity and nuance traits, then adopt the persona's voice, tone, and decision-making style for the remainder of the current session."
+---
+
+The `$introduce` / `/introduce` command loads the active persona directly into the running session — no separate agent is dispatched. After invocation, the AI adopts the persona's voice, communication style, and decision-making logic for every subsequent response in the conversation. Use it at the start of any working session to ensure all outputs are persona-conditioned before you run trend scans, draft content, or review QA results.
+
+## Invocation
+
+<CodeGroup>
+```bash Codex
+$introduce
+```
+
+```bash Claude Code
+/introduce
+```
+</CodeGroup>
+
+## What it does
+
+`$introduce` performs an in-session persona injection with no agent handoff:
+
+- Reads `personas/_active.md` to resolve the active persona directory (falls back to `default`).
+- Loads `personas/{active}/persona.md` — the core identity record built from interview extraction.
+- Loads `personas/{active}/nuance.md` — the tone, register, and expression style profile.
+- **Adopts** this persona's voice, tone, and decision-making style for the rest of the session.
+- Keeps all subsequent responses aligned with the persona's priorities, constraints, and expression patterns.
+
+<Note>
+Unlike the agent-backed skills, `$introduce` injects the persona directly into the current context window. There is no forked agent, no file written, and no output path. The effect is purely behavioural within the active session.
+</Note>
+
+## Prerequisites
+
+The active persona must have been established through a completed interview session. Both persona files must exist:
+
+```text
+personas/{active}/persona.md    ← must exist (from $interview)
+personas/{active}/nuance.md     ← must exist (from structuring engine)
+```
+
+<Warning>
+If no persona file is found, the command will print `No persona found. Run /interview first.` and will not inject any persona. Run `$interview` to create the persona before calling `$introduce`.
+</Warning>
+
+## Output
+
+`$introduce` does not write any files. Its effect is confined to the current session context. To persist persona behaviour across different projects or agent runtimes, use [`$export`](/skills/export) to generate portable `CLAUDE.generated.md` or `AGENTS.generated.md` files instead.
+
+## Guardrails & Notes
+
+- The persona injection lasts only for the current session. Start a new session, and you will need to run `$introduce` again.
+- If `nuance.md` is missing but `persona.md` exists, the injected persona will have core identity but no voice/tone calibration — run the structuring engine to regenerate `nuance.md`.
+- `$introduce` reads but never modifies persona files. It is always safe to re-run.
+- For long sessions spanning multiple content types, calling `$introduce` once at the top is sufficient.
+
+## Related agents
+
+`$introduce` has no dedicated agent — it operates directly in the active session. If you need a persistent, portable version of the persona for use in other projects or agent runtimes, see the [`$export` skill](/skills/export).

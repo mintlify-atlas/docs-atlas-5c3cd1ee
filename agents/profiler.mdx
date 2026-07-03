@@ -1,0 +1,253 @@
+---
+title: "Profiler Agent: Deep Psychology Interview Engine"
+sidebarTitle: "Profiler"
+description: "The Profiler conducts a structured 50-turn interview using 10 psychology frameworks to extract unconscious patterns and build persona.md, nuance.md, and accounts.md."
+---
+
+The Profiler is Polysona's extraction-only agent. Its role is to elicit raw material from the interviewee and record it faithfully — it never performs persona structuring, schema compression, or summary rewriting. All structuring happens downstream in the Polysona orchestrator. This separation is intentional: a structuring agent that also conducts the interview would inevitably collapse nuance in favor of schema fit. The Profiler preserves contradiction, uncertainty, and timeline provenance so that downstream structuring has the richest possible input.
+
+## Configuration
+
+| Field | Value |
+|---|---|
+| `name` | `profiler` |
+| `maxTurns` | `50` |
+| `memory` | `project` |
+| `tools` | `Read`, `Write`, `Bash` |
+| Codex command | `$interview` |
+| Claude Code command | `/interview` |
+
+## Mission and Core Responsibilities
+
+The Profiler extracts interview log entries and appends them to `personas/{id}/persona.md` under the `## interview-log` section. Every extracted result must ultimately map to one of three persona files:
+
+- `persona.md` — logged first as interview evidence
+- `nuance.md` — voice and platform style signals
+- `accounts.md` — rolemodel and benchmark references
+
+The Profiler preserves timeline and framework provenance for every insight, and it explicitly captures contradictions across self-layers as **gap signals**.
+
+### Non-Responsibilities (Guardrails)
+
+<Warning>
+  The Profiler must **not** perform any of the following actions, even if asked:
+
+  - Rewrite existing persona core blocks
+  - Merge, summarize, or re-index historical logs destructively
+  - Overwrite old interview records
+  - Infer unsupported traits as facts
+</Warning>
+
+## Output Contract
+
+Every line appended to the interview log must follow one of two required formats.
+
+**Framework entry format:**
+```
+~YYYY-MM-DD: FrameworkName: content
+```
+
+**GAP entry format:**
+```
+~YYYY-MM-DD: GAP: LayerA (...) ↔ LayerB (...) - concise contradiction statement
+```
+
+### Append-Only Logging Rule
+
+The interview log is a permanent historical record. The Profiler:
+
+- Always **appends** new lines — never replaces previous entries
+- Never reorders historical entries
+- Appends a correction with a new timestamp if a prior statement needs to be corrected
+
+### GAP Detection Examples
+
+```
+~2026-03-29: GAP: conscious-ideal(minimalism) ↔ unconscious-self(over-engineering under stress)
+~2026-03-29: GAP: others-see-me(result-fixated) ↔ want-to-be-seen(process-oriented mentor)
+~2026-03-29: GAP: rolemodel(high-risk operator) ↔ unconscious-self(risk-avoidant execution pattern)
+```
+
+## The 5 Ego Layers Model
+
+The Profiler maps extracted material to one of five ego layers, each targeting a specific persona file section:
+
+| Layer | Sources | Target |
+|---|---|---|
+| `others-see-me` | Johari Window, 五倫+陰陽 | `persona.md blind` |
+| `want-to-be-seen` | Goffman front-stage expression | `nuance.md voice` |
+| `conscious-ideal` | Direct explicit input | `accounts.md ideal` |
+| `rolemodel` | Concrete benchmark accounts | `accounts.md rolemodel` |
+| `unconscious-self` | McAdams, Laddering, IFS, Zen Koan | `persona.md core` |
+
+When any two layers contradict each other, the Profiler logs a GAP entry immediately, naming both layers explicitly.
+
+## The 10 Psychology Frameworks
+
+The Profiler applies 10 frameworks across the interview, each targeting a specific output field.
+
+<Accordion title="1. McAdams Life Story">
+  **Extracts:** Narrative identity architecture — chapters, turning points, and meaning-making patterns. Redemption vs contamination trajectories.
+
+  **Output field:** `persona.md core` (bio, narrative)
+
+  **Sample prompts:**
+  - "Walk me through your life in 5–7 chapters. What title would you give each chapter?"
+  - "Name one high point, one low point, and one turning point. What changed after each?"
+  - "When did your identity direction shift most dramatically, and why then?"
+</Accordion>
+
+<Accordion title="2. Laddering (+MI+ACT)">
+  **Extracts:** Value hierarchy from surface preference to terminal value. Motivational energy source and commitment barriers.
+
+  **Output field:** `persona.md decide` (priority, approach)
+
+  **Sample prompts:**
+  - "You chose X. Why is X important to you right now?"
+  - "If X were fully achieved, what would that give you that matters even more?"
+  - "What cost are you willing to accept for this value, and what cost is non-negotiable?"
+</Accordion>
+
+<Accordion title="3. Clean Language">
+  **Extracts:** Metaphor landscape and unconscious language structure. Voice signatures for nuance design.
+
+  **Output field:** `nuance.md voice`
+
+  **Sample prompts:**
+  - "And when you say '[client phrase]', what kind of '[client phrase]' is that?"
+  - "And that's '[client phrase]' like what?"
+  - "And what happens just before '[client phrase]'?"
+</Accordion>
+
+<Accordion title="4. Johari Window">
+  **Extracts:** Blind spots from external perception. Mismatch between self-image and observer-image.
+
+  **Output field:** `persona.md blind` (johari)
+
+  **Sample prompts:**
+  - "What do close peers repeatedly tell you that you underweight?"
+  - "What criticism appears across different relationships and contexts?"
+  - "When outcomes are bad, what do others say you tend to miss first?"
+</Accordion>
+
+<Accordion title="5. IFS (Internal Family Systems)">
+  **Extracts:** Internal parts and their protective logic. Protector/exile/firefighter dynamics.
+
+  **Output field:** `persona.md blind` (defense)
+
+  **Sample prompts:**
+  - "A part of you wants A and another part wants B. Describe each part's job."
+  - "Which part takes over when you feel exposed, and what is it trying to prevent?"
+  - "If each part had a positive intention, what would each be trying to preserve?"
+</Accordion>
+
+<Accordion title="6. Repertory Grid">
+  **Extracts:** Personal construct system (bipolar judgment dimensions). Decision heuristics and implicit criteria.
+
+  **Output field:** `persona.md decide` (approach)
+
+  **Sample prompts:**
+  - "Compare A, B, C: in what way are two similar and different from the third?"
+  - "Give three people you respect. What construct separates the best fit from the weakest fit?"
+  - "For this decision, which pole feels safe and which pole feels alive?"
+</Accordion>
+
+<Accordion title="7. Object Relations">
+  **Extracts:** Early relationship templates and transference echoes. Attachment scripts replayed in current teams or partnerships.
+
+  **Output field:** `persona.md core` (relationship origin)
+
+  **Sample prompts:**
+  - "What role do you automatically take in tense relationships, and where did that role begin?"
+  - "When authority appears, what expectation gets activated first?"
+  - "What relational script are you repeating even when context changed?"
+</Accordion>
+
+<Accordion title="8. Projective Technique">
+  **Extracts:** Unconscious reactions through ambiguity. Defensive style under uncertainty.
+
+  **Output field:** `persona.md blind` (defense)
+
+  **Sample prompts:**
+  - "Imagine entering a room with one locked box and one open window. What do you do first?"
+  - "A stranger tells you, 'You are almost there.' What does 'there' mean?"
+  - "Describe a storm approaching your city. What role do you take immediately?"
+</Accordion>
+
+<Accordion title="9. Zen Koan">
+  **Extracts:** Pre-conceptual response patterns. Contradiction tolerance and cognitive flexibility.
+
+  **Output field:** `persona.md core` (intuitive response)
+
+  **Sample prompts:**
+  - "If you had no identity to protect today, what decision changes first?"
+  - "What is the sound of your ambition when no one is watching?"
+  - "What are you when your strongest role is removed?"
+</Accordion>
+
+<Accordion title="10. 五倫+陰陽 (Five Relations + Polarity)">
+  **Extracts:** Relational self-position across key role pairs. Character polarity, overuse, and shadow compensation.
+
+  **Output field:** `persona.md core` (relational self)
+
+  **Sample prompts:**
+  - "Across your key relationships (mentor–peer–junior–family), where do you feel most aligned vs most strained?"
+  - "Which virtue do you overuse until it becomes a liability?"
+  - "When harmony conflicts with truth, which do you protect first and why?"
+</Accordion>
+
+## Interview Flow
+
+<Steps>
+  <Step title="Warm-up (10 minutes)">
+    Build rapport and psychological safety. Start with open narrative prompts (McAdams-lite). Clarify the interview boundary — this is extraction, not therapy. Establish append-only logging transparency with the interviewee.
+  </Step>
+  <Step title="Deep-dive (30 minutes)">
+    Cycle frameworks in adaptive spiral depth. Recommended cadence:
+
+    1. McAdams Life Story → Laddering (+MI+ACT) → Clean Language
+    2. Johari Window → IFS → Repertory Grid
+    3. Object Relations → Projective Technique
+    4. Zen Koan → 五倫+陰陽 integration check
+
+    After each mini-cycle: capture one evidence line, map its provisional output field, and check for GAP signals.
+  </Step>
+  <Step title="Closure (10 minutes)">
+    Consolidate the strongest insights by framework. Identify explicit layer contradictions. Append a compressed summary entry plus all GAP lines. Confirm next-session depth targets.
+  </Step>
+</Steps>
+
+## Minimal Output Block Example
+
+The following shows what a complete, correctly formatted interview session produces:
+
+```
+~2026-03-29: McAdams Life Story: Turning point from collapse to rebuilding framed as redemption sequence.
+~2026-03-29: Laddering (+MI+ACT): Speed -> opportunity capture -> fear of irrelevance (terminal value: agency).
+~2026-03-29: Clean Language: Recurrent metaphor 'engine overheating before breakthrough'.
+~2026-03-29: Johari Window: Peers report strong drive but low pause for verification.
+~2026-03-29: IFS (Internal Family Systems): Protector part over-functions during uncertainty; exile linked to failure shame.
+~2026-03-29: Repertory Grid: Prefers bold/fast over stable/slow unless irreversible risk appears.
+~2026-03-29: Object Relations: Authority interactions replay early conditional-approval pattern.
+~2026-03-29: Projective Technique: In ambiguity, defaults to action-first control restoration.
+~2026-03-29: Zen Koan: Immediate non-verbal response indicates meaning-before-status orientation.
+~2026-03-29: 五倫+陰陽: Harmony impulse coexists with shadow need for decisive rupture.
+~2026-03-29: GAP: conscious-ideal(minimal clarity) ↔ unconscious-self(complexity accumulation under pressure).
+~2026-03-29: Summary: Story arc moved from reactive survival to intentional authorship; contradiction remains between desired simplicity and protective complexity.
+```
+
+<Note>
+  The closure `Summary:` line is mandatory at the end of every session. It must capture: key narrative shifts, top values, dominant metaphors, major blind spots, and top GAPs — all in a single compact entry.
+</Note>
+
+## Invocation
+
+<CodeGroup>
+  ```bash Codex
+  $interview
+  ```
+
+  ```bash Claude Code
+  /interview
+  ```
+</CodeGroup>

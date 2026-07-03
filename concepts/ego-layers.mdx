@@ -1,0 +1,216 @@
+---
+title: "Five Ego Layers: How Polysona Maps the Self"
+sidebarTitle: "Ego Layers"
+description: "Polysona models identity through 5 ego layers — from others-see-me to unconscious-self — and surfaces contradictions between them as GAP signals."
+---
+
+Polysona doesn't treat a person as a single uniform identity. Instead, it models five distinct ego layers, each sourced from different psychology frameworks and stored in different parts of the persona dataset. The key insight driving this design is that what a person consciously believes about themselves, what others actually observe, and what drives behavior under pressure are often three different things. By maintaining all five layers simultaneously, Polysona can detect and record the gaps between them — which are frequently more diagnostic than any single layer alone.
+
+<Note>
+  The ego layer count is exactly **5**. This number is a key fact in Polysona and must never be misstated.
+</Note>
+
+## Layer Architecture Diagram
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║                     5 EGO LAYERS                                 ║
+╠══════════════╦═════════════════════════════╦════════════════════╣
+║ Layer        ║ Framework Sources           ║ Primary Target     ║
+╠══════════════╬═════════════════════════════╬════════════════════╣
+║ others-      ║ Johari Window               ║ persona.md         ║
+║ see-me       ║ 五倫+陰陽                   ║   → blind          ║
+╠══════════════╬═════════════════════════════╬════════════════════╣
+║ want-to-     ║ Goffman front stage         ║ nuance.md          ║
+║ be-seen      ║ expression                  ║   → voice          ║
+╠══════════════╬═════════════════════════════╬════════════════════╣
+║ conscious-   ║ Direct explicit input       ║ accounts.md        ║
+║ ideal        ║                             ║   → ideal          ║
+╠══════════════╬═════════════════════════════╬════════════════════╣
+║ rolemodel    ║ Concrete benchmark          ║ accounts.md        ║
+║              ║ accounts/figures            ║   → rolemodel      ║
+╠══════════════╬═════════════════════════════╬════════════════════╣
+║ unconscious- ║ McAdams, Laddering,         ║ persona.md         ║
+║ self         ║ IFS, Zen Koan               ║   → core           ║
+╚══════════════╩═════════════════════════════╩════════════════════╝
+```
+
+---
+
+## The Five Layers
+
+<CardGroup cols={2}>
+  <Card title="① others-see-me" icon="eye">
+    How external observers actually describe the person. Sourced from Johari Window (peer feedback) and 五倫+陰陽 (relational role perception). Stored in `persona.md blind`.
+  </Card>
+  <Card title="② want-to-be-seen" icon="mask">
+    The front-stage expression the person deliberately projects. Sourced from Goffman's dramaturgical model of impression management. Stored in `nuance.md voice`.
+  </Card>
+  <Card title="③ conscious-ideal" icon="star">
+    The explicit self-image the person endorses — who they say they want to be. Sourced from direct input in interviews. Stored in `accounts.md ideal`.
+  </Card>
+  <Card title="④ rolemodel" icon="person-chalkboard">
+    Concrete benchmark figures or accounts the person uses as reference points. Sourced from explicit rolemodel identification. Stored in `accounts.md rolemodel`.
+  </Card>
+  <Card title="⑤ unconscious-self" icon="brain">
+    Deep narrative identity, value hierarchy, and stress-triggered behavioral patterns. Sourced from McAdams, Laddering, IFS, and Zen Koan. Stored in `persona.md core`.
+  </Card>
+</CardGroup>
+
+---
+
+## Layer-by-Layer Reference
+
+<AccordionGroup>
+  <Accordion title="① others-see-me">
+    **Definition:** How others in the person's relational network actually describe and experience them — independent of how the person wishes to be seen.
+
+    **Framework sources:**
+    - **Johari Window** — surfaces blind spots from peer and collaborator feedback. Gathers recurring observations the person underweights or dismisses.
+    - **五倫+陰陽** — situates the person within their key relational role pairs (mentor, peer, junior, family) and identifies where relational strain appears.
+
+    **Primary target in data:** `persona.md blind` → `johari` row
+
+    **What the Profiler extracts:**
+    - Repeated feedback patterns across different relationships and contexts
+    - Compliments the person hears often but doesn't fully accept
+    - Criticisms that appear consistently regardless of who delivers them
+
+    **Why it matters for GAP detection:** The gap between `others-see-me` and `want-to-be-seen` is often the most socially actionable contradiction — it reveals what the persona is communicating that it doesn't intend to.
+  </Accordion>
+
+  <Accordion title="② want-to-be-seen">
+    **Definition:** The deliberate impression the person performs — their front stage, in Goffman's terms. This is not deception; it is the curated version of self that the person consciously presents in social and professional contexts.
+
+    **Framework source:**
+    - **Goffman front stage expression** — the concept that individuals actively manage the impression they project in social situations, distinct from backstage behavior.
+
+    **Primary target in data:** `nuance.md voice`
+
+    **What the Profiler extracts:**
+    - Preferred registers and tonal choices
+    - Metaphors and self-descriptions the person reaches for when introducing themselves
+    - Platform-specific expression preferences
+
+    **Why it matters for GAP detection:** The gap between `want-to-be-seen` and `unconscious-self` reveals how much energy the persona is spending on performance versus authentic expression. A large gap here may produce voice inconsistency across platforms.
+  </Accordion>
+
+  <Accordion title="③ conscious-ideal">
+    **Definition:** The explicit self-image the person endorses — the traits, values, and identity they actively claim as aspirational. This is what someone says when asked "what kind of person do you want to be?"
+
+    **Framework source:**
+    - **Direct explicit input** — no projection or inference; the person states this directly during interview.
+
+    **Primary target in data:** `accounts.md ideal`
+
+    **What the Profiler extracts:**
+    - Stated values and aspirational identity descriptors
+    - The version of self the person presents as their north star
+    - Explicit goals attached to self-concept
+
+    **Why it matters for GAP detection:** `conscious-ideal` is the most susceptible layer to social desirability bias. The most diagnostic GAPs appear when it contradicts `unconscious-self` — where stated minimalism coexists with observed over-engineering, for example.
+  </Accordion>
+
+  <Accordion title="④ rolemodel">
+    **Definition:** Concrete benchmark figures, accounts, or people the person uses as reference points for their own development. These are not abstract archetypes; they are specific, nameable references.
+
+    **Framework source:**
+    - **Concrete benchmark accounts/figures** — identified through direct elicitation and populated into `accounts.md rolemodel`.
+
+    **Primary target in data:** `accounts.md rolemodel`
+
+    **What the Profiler extracts:**
+    - Named people or accounts across specific platforms
+    - The specific signal or quality the person is benchmarking (e.g., conciseness, philosophical depth)
+    - Why that figure represents a meaningful reference for this persona
+
+    **Why it matters for GAP detection:** The gap between `rolemodel` and `unconscious-self` can reveal aspirational mismatch — when a person models high-risk operators but their own stress response is risk-avoidant execution.
+  </Accordion>
+
+  <Accordion title="⑤ unconscious-self">
+    **Definition:** The deep identity layer — narrative patterns, terminal values, stress behaviors, and protective mechanisms that operate below conscious articulation. This is what actually drives decisions, especially under pressure.
+
+    **Framework sources:**
+    - **McAdams Life Story** — narrative identity, redemption vs. contamination sequences, turning point interpretations
+    - **Laddering (+MI+ACT)** — terminal value hierarchy, what the person is ultimately optimizing for
+    - **IFS (Internal Family Systems)** — internal parts, protectors, exiles, and firefighter behaviors
+    - **Zen Koan** — pre-conceptual response patterns, what remains when rehearsed identity is stripped away
+
+    **Primary target in data:** `persona.md core`
+
+    **What the Profiler extracts:**
+    - Life chapter architecture and turning point narratives
+    - Terminal values reached at the bottom of the Laddering ascent
+    - Protector parts and their defensive logic under uncertainty
+    - Intuitive responses that surface before language organizes them
+
+    **Why it matters for GAP detection:** `unconscious-self` is the reference layer against which all other layers are compared. Contradictions with `conscious-ideal`, `others-see-me`, or `rolemodel` are the most diagnostic signals in the entire system.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## GAP Discovery Protocol
+
+When the Profiler agent detects a contradiction between any two layers, it immediately logs it as a **GAP entry** in `persona.md interview-log`. GAPs are not errors — they are the most valuable data the interview produces.
+
+### Required GAP Format
+
+```
+~YYYY-MM-DD: GAP: LayerA (description) ↔ LayerB (description) - concise contradiction statement
+```
+
+The `↔` symbol is mandatory. It marks the entry as a bidirectional tension between two named layers, not a one-way critique. Both layers must be named explicitly.
+
+### Real GAP Examples from `profiler.md`
+
+```
+~2026-03-29: GAP: conscious-ideal(minimalism) ↔ unconscious-self(over-engineering under stress)
+```
+*The persona explicitly values minimalism, but under pressure the unconscious response is to add complexity.*
+
+```
+~2026-03-29: GAP: others-see-me(result-fixated) ↔ want-to-be-seen(process-oriented mentor)
+```
+*Peers observe a results-first driver; the persona's front-stage projection is a patient, process-oriented teacher.*
+
+```
+~2026-03-29: GAP: rolemodel(high-risk operator) ↔ unconscious-self(risk-avoidant execution pattern)
+```
+*The persona benchmarks bold, high-stakes operators — but their own execution behavior under real stakes is risk-avoidant.*
+
+---
+
+## Why GAPs Are Valuable
+
+GAP signals reveal the tension between who you think you are, how others see you, what you aspire toward, and what you actually do under pressure. They are not weaknesses to be eliminated — they are the raw material for authentic persona development.
+
+<CardGroup cols={3}>
+  <Card title="Content Authenticity" icon="check-circle">
+    GAPs explain why generated content can feel inconsistent across platforms. Surfacing the tension allows nuance calibration.
+  </Card>
+  <Card title="Decision Modeling" icon="scale-balanced">
+    Knowing where `conscious-ideal` contradicts `unconscious-self` enables more accurate prediction of actual behavior versus stated preference.
+  </Card>
+  <Card title="Iterative Deepening" icon="arrow-trend-up">
+    GAPs become depth targets for subsequent interview sessions. The Profiler closes each session by identifying the top GAPs for the next session to resolve.
+  </Card>
+</CardGroup>
+
+<Warning>
+  GAP entries are **hypotheses** until confirmed by cross-framework evidence across multiple sessions. The Profiler records them immediately when detected but marks uncertainty when data is partial. Do not treat a single-session GAP as a definitive trait.
+</Warning>
+
+---
+
+## Layer Interaction Summary
+
+The five layers interact through the GAP Discovery Protocol. Any pairing can produce a GAP signal:
+
+| Layer A | Layer B | What the GAP reveals |
+|---|---|---|
+| `conscious-ideal` | `unconscious-self` | Stated values vs. actual behavioral drivers |
+| `others-see-me` | `want-to-be-seen` | Intended projection vs. received impression |
+| `rolemodel` | `unconscious-self` | Aspiration vs. actual execution pattern |
+| `conscious-ideal` | `others-see-me` | Self-concept vs. external perception |
+| `want-to-be-seen` | `unconscious-self` | Front-stage performance vs. backstage reality |

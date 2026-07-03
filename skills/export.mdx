@@ -1,0 +1,100 @@
+---
+title: "$export / /export: Export Persona to CLAUDE.md or AGENTS.md"
+sidebarTitle: "export"
+description: "Generate portable CLAUDE.generated.md and AGENTS.generated.md files from the active persona — ready to drop into any project root as CLAUDE.md or AGENTS.md."
+---
+
+The `$export` / `/export` command reads the active persona and synthesises it into one or both of two portable configuration files: `CLAUDE.generated.md` for Claude Code projects and `AGENTS.generated.md` for Codex / OpenCode workflows. Once generated, these files can be dropped into any project root and immediately used by the target runtime — making your persona portable across all AI agent environments.
+
+## Invocation
+
+<CodeGroup>
+```bash Codex
+$export both
+$export claude
+$export agents
+```
+
+```bash Claude Code
+/export both
+/export claude
+/export agents
+```
+</CodeGroup>
+
+The `$ARGUMENTS` value is the **target**. Accepted values:
+
+| Value | Effect |
+|---|---|
+| `claude` | Writes `personas/{active}/generated/CLAUDE.generated.md` only |
+| `agents` | Writes `personas/{active}/generated/AGENTS.generated.md` only |
+| `both` | Writes both generated files |
+| _(empty)_ | Defaults to `both` |
+
+## What it does
+
+### Exporting to `CLAUDE.generated.md` (`target=claude` or `target=both`)
+
+Builds `personas/{active}/generated/CLAUDE.generated.md` from `persona.md` and `nuance.md`:
+
+- **Work philosophy section** — infers priority ordering, approach style, and risk stance from `persona.md`.
+- **Decision-making priorities** — infers ordering and energy bias from `persona.md` core data.
+- **Tone rules** — maps `nuance.md` voice profile into concrete register rules and an avoid-list.
+- **Context loading protocol** — derives a startup context checklist from `persona.md` core tags.
+- **Anti-patterns to avoid** — converts the `anti` field in `persona.md` into explicit do-not rules.
+- Adds a **generated-file header note** instructing the reader to review the file before copying it into a project root.
+
+### Exporting to `AGENTS.generated.md` (`target=agents` or `target=both`)
+
+Builds `personas/{active}/generated/AGENTS.generated.md` as a Codex / OpenCode-compatible agent definition file:
+
+- Includes agent name, description, and invocation method for each agent.
+- Grounds the role split in the persona's domain expertise from `persona.md` core tags.
+- Keeps all entries portable across Codex-style and OpenCode-style `AGENTS.md` conventions.
+- Adds a **generated-file header note** indicating the file was auto-generated.
+
+After writing, the skill re-reads the generated file(s) and returns the confirmed path(s) in the response.
+
+## Prerequisites
+
+The active persona must have completed interview and structuring steps:
+
+```text
+personas/{active}/persona.md    ← must exist (from $interview)
+personas/{active}/nuance.md     ← must exist (from structuring engine)
+```
+
+<Warning>
+If no persona is found, the command prints `No persona. Run /interview first.` and exits without writing any files. Complete at least one interview session before exporting.
+</Warning>
+
+## Output
+
+Generated files are written to:
+
+```text
+personas/{active}/generated/CLAUDE.generated.md
+personas/{active}/generated/AGENTS.generated.md
+```
+
+The `generated/` directory is created automatically if it does not exist. The response includes the confirmed path(s) of every file written.
+
+```text
+Saved: personas/default/generated/CLAUDE.generated.md
+Saved: personas/default/generated/AGENTS.generated.md
+```
+
+<Tip>
+**Portability:** `CLAUDE.generated.md` is designed to be dropped into any project root and renamed to `CLAUDE.md`. `AGENTS.generated.md` can be used as-is as an `AGENTS.md` file in any Codex or OpenCode-compatible workflow. Always review the generated-file header note inside each file before deploying it to a project.
+</Tip>
+
+## Guardrails & Notes
+
+- Generated files contain a header note confirming they are auto-generated. Remove this header or adjust the content as needed before committing to a project.
+- `$export` reads but never modifies `persona.md` or `nuance.md`. Re-running it is always safe and produces a fresh synthesis from the current state of those files.
+- If the persona has changed since the last export (e.g. after additional `$interview` sessions), re-run `$export` to regenerate files that reflect the updated persona.
+- The `generated/` directory is inside the persona directory — it is scoped to the active persona. Switching the active persona and re-running `$export` will write to a different `generated/` directory.
+
+## Related agents
+
+`$export` has no dedicated agent — it synthesises from loaded persona files directly. The generated `AGENTS.generated.md` references the [Profiler](/agents/profiler), [Trendsetter](/agents/trendsetter), [Content-writer](/agents/content-writer), [Virtual-follower](/agents/virtual-follower), and [Admin](/agents/admin) agents by default.

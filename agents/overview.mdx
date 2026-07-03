@@ -1,0 +1,135 @@
+---
+title: "Polysona Agents: The 5-Agent Content Pipeline"
+sidebarTitle: "Overview"
+description: "Polysona coordinates 5 specialized agents — profiler, trendsetter, content-writer, virtual-follower, and admin — in a structured pipeline from interview to publish."
+---
+
+Polysona is built around five specialized agents that work in sequence to transform deep psychological self-knowledge into published, persona-authentic content. Rather than relying on a single generalist model, Polysona separates extraction, trend detection, drafting, quality assurance, and publishing into distinct agents — each with a focused role, a dedicated toolset, and strict output contracts. The pipeline is portable: every agent runs identically in OpenAI Codex (via `$command`) or Claude Code (via `/command`).
+
+## Agent Summary
+
+| Agent | Role | Codex Command | Claude Code Command | Badge |
+|---|---|---|---|---|
+| **profiler** | Deep psychology interviewer | `$interview` | `/interview` | 10 frameworks |
+| **trendsetter** | Trend detector | `$trend` | `/trend` | WebSearch |
+| **content-writer** | Platform content generator | `$content [platform]` | `/content [platform]` | 5 platforms |
+| **virtual-follower** | QA simulator | `$qa` | `/qa` | `context: fork` |
+| **admin** | Publisher and tracker | `$publish` | `/publish` | feedback loop |
+
+## Pipeline Phases
+
+The Polysona pipeline is divided into two distinct phases: **SETUP** and **LOOP**.
+
+<Steps>
+  <Step title="SETUP Phase — Run once (or periodically)">
+    The **profiler** conducts a structured interview using 10 psychology frameworks. After the interview, Polysona's structuring engine processes the raw interview log and produces three persona files:
+
+    - `personas/{id}/persona.md` — core identity, decision patterns, energy model, blind spots
+    - `personas/{id}/nuance.md` — voice register, platform style, phrasing constraints
+    - `personas/{id}/accounts.md` — rolemodel accounts and virtual follower benchmarks
+
+    This phase is run once for a new persona and repeated whenever a meaningful identity shift is detected.
+  </Step>
+  <Step title="LOOP Phase — Runs every content cycle">
+    With persona data in place, the four remaining agents form a repeating loop:
+
+    1. **trendsetter** → scans for ranked trending topics matched to persona domains
+    2. **content-writer** → generates 3 platform-native draft variations per selected topic
+    3. **virtual-follower** → simulates 20 audience archetypes and returns a scored TOP 5
+    4. **admin** → publishes the selected draft, records metadata, and feeds engagement results back into the persona
+
+    You drive the loop: the user selects a draft from the virtual-follower's TOP 5 before admin publishes it.
+  </Step>
+</Steps>
+
+## Pipeline Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                         POLYSONA                            │
+│      Build and run multiple personas across any AI agent.   │
+│                                                             │
+│  SETUP (one-time / periodic refresh)                        │
+│    ① profiler -> interview log extraction                   │
+│           -> Polysona structuring engine                    │
+│           -> persona.md + nuance.md + accounts.md           │
+│                                                             │
+│  LOOP (per content cycle)                                   │
+│    ② trendsetter -> ③ content-writer -> ④ virtual-follower │
+│    -> user selection -> ⑤ admin (publish + tracking)       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Agent Invocation
+
+Polysona agents are invoked by command — the syntax differs slightly between the two supported AI agent hosts.
+
+<Tabs>
+  <Tab title="Codex">
+    In OpenAI Codex, `AGENTS.md` is auto-recognized and skills are auto-discovered from `.agents/skills`. Use the `$` prefix to invoke any agent command:
+
+    ```bash
+    $interview        # Run the profiler interview
+    $trend            # Scan trending topics
+    $content x        # Generate X (Twitter) drafts
+    $qa               # Run QA simulation
+    $publish          # Publish selected draft
+    ```
+
+    If you edit `skills/`, resync with:
+
+    ```bash
+    node ./scripts/sync-codex-skills.mjs
+    # or
+    bun run codex:skills:sync
+    ```
+  </Tab>
+  <Tab title="Claude Code">
+    In Claude Code, install the plugin first and then use the `/` prefix:
+
+    ```bash
+    claude plugin marketplace add ./.claude-plugin/marketplace.json
+    claude plugin install polysona
+    ```
+
+    ```
+    /interview        # Run the profiler interview
+    /trend            # Scan trending topics
+    /content x        # Generate X (Twitter) drafts
+    /qa               # Run QA simulation
+    /publish          # Publish selected draft
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Utility commands `$introduce` / `/introduce`, `$status` / `/status`, and `$export` / `/export` are also available across both hosts for session injection, pipeline status checks, and persona export.
+</Note>
+
+## The `context: fork` Isolation Model
+
+The virtual-follower agent runs with `context: fork`, which means it executes in a context isolated from the content-writer's generation context. This is intentional: the QA simulation must evaluate drafts as an independent reader, not as a continuation of the writing session. Without this isolation, the evaluator would carry forward the same assumptions and blind spots as the generator — defeating the purpose of multi-audience review.
+
+<Warning>
+  Do not manually pass context from a content-writer session into a virtual-follower session. The `context: fork` boundary exists to guarantee evaluation independence.
+</Warning>
+
+## Agent Pages
+
+<CardGroup cols={2}>
+  <Card title="Profiler" icon="brain" href="/agents/profiler">
+    Deep psychology interview engine. Runs a structured 50-turn session using 10 frameworks to extract unconscious patterns and build your three core persona files.
+  </Card>
+  <Card title="Trendsetter" icon="arrow-trend-up" href="/agents/trendsetter">
+    Persona-matched trend detector. Scans domains and returns a ranked list of 5 topics with platform-fit tags conditioned on your active persona.
+  </Card>
+  <Card title="Content-Writer" icon="pen-nib" href="/agents/content-writer">
+    Platform-native draft generator. Produces 3 persona-conditioned variations per platform, adapted to the voice and hook patterns in your nuance.md.
+  </Card>
+  <Card title="Virtual-Follower" icon="users" href="/agents/virtual-follower">
+    QA simulator with 20 audience archetypes. Scores drafts across hook, empathy, shareability, CTA, and platform fit — then recommends a TOP 5.
+  </Card>
+  <Card title="Admin" icon="paper-plane" href="/agents/admin">
+    Publishing flow and performance tracker. Saves final content, generates a platform-specific checklist, and captures metadata for the feedback loop.
+  </Card>
+</CardGroup>

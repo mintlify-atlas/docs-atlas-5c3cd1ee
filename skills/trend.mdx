@@ -1,0 +1,78 @@
+---
+title: "$trend / /trend: Scan Trending Topics and Get Content Recommendations"
+sidebarTitle: "trend"
+description: "Trigger the trendsetter agent to scan current topics, rank them against your persona's domains, and tag each result by platform fit across five platforms."
+---
+
+The `$trend` / `/trend` command dispatches the **trendsetter** agent to scan what is currently trending across your persona's domains and return a ranked, platform-tagged topic list. Run it at the start of a content cycle — after `$introduce` — to get a prioritised set of topics before drafting. Results are saved to disk so downstream skills like `$content` and `$qa` can reference them.
+
+## Invocation
+
+<CodeGroup>
+```bash Codex
+$trend
+```
+
+```bash Claude Code
+/trend
+```
+</CodeGroup>
+
+## What it does
+
+- Reads `personas/_active.md` to resolve the active persona and loads `personas/{active}/persona.md`.
+- Triggers the **trendsetter** agent to scan current trends matched to the persona's domains.
+- Returns a **ranked topic list** with platform-fit tags for each entry:
+  - `x` — X (Twitter)
+  - `threads` — Threads
+  - `linkedin` — LinkedIn
+  - `naver-blog` — Naver Blog
+  - `brunch` — Brunch
+- If live search is slow or unavailable, the trendsetter **immediately falls back** to persona-driven topic ranking from local files and still returns usable results — it will never stall waiting for an external signal.
+- Saves the ranked scan to `content/trends/` **before** returning its response.
+- Re-reads the saved trend file and includes the confirmed saved path in the response.
+- If no file was actually written, the trendsetter reports failure rather than claiming success.
+
+## Prerequisites
+
+An active persona must exist before running a trend scan:
+
+```text
+personas/{active}/persona.md    ← must exist (from $interview)
+```
+
+<Info>
+Run `$interview` first to build a persona, then optionally `$introduce` to activate it, before calling `$trend`.
+</Info>
+
+## Output
+
+The trendsetter saves its ranked scan to:
+
+```text
+content/trends/
+```
+
+The response includes the confirmed file path and a ranked list in the form of:
+
+```text
+1. [Topic title] — platforms: x, linkedin
+2. [Topic title] — platforms: threads, brunch
+3. ...
+```
+
+Each entry is matched to the persona's domain expertise and ranked by relevance and current momentum.
+
+## Guardrails & Notes
+
+<Warning>
+The trendsetter must write a file before it reports success. If you receive a response without a confirmed `content/trends/` path, the save failed — re-run the command.
+</Warning>
+
+- The fallback to local persona-driven ranking is automatic and silent only when live search is genuinely unavailable. The response will note when a fallback was used.
+- Platform tags reflect persona-domain fit, not general platform popularity. A topic tagged only `linkedin` is not necessarily unfit for `x` — it means the trendsetter judged the fit strongest for LinkedIn given your persona.
+- Topic rankings are scoped to the active persona's domains. Switching the active persona and re-running `$trend` will produce a different ranked list.
+
+## Related agent
+
+The `$trend` skill is executed by the **trendsetter** agent. See the [Trendsetter agent page](/agents/trendsetter) for details on its domain scanning, topic prioritisation, and platform-fit filtering logic.

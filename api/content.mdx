@@ -1,0 +1,73 @@
+---
+title: "Content REST API: List Drafts and Published Files"
+sidebarTitle: "Content"
+description: "REST endpoints for listing content files in the drafts and published pipeline stages. Returns filenames sorted alphabetically from content/ subdirectories."
+---
+
+The content endpoints expose the two stages of Polysona's content pipeline: drafts and published. Each endpoint scans the corresponding directory on disk and returns a sorted list of filenames. These are thin directory-listing endpoints — they tell you what files exist, not what they contain.
+
+Content files are Markdown documents written by the content-writer agent and moved through the pipeline by the admin agent. You can read the actual file contents directly from the filesystem at `content/drafts/<filename>` or `content/published/<filename>`.
+
+---
+
+## GET /api/content/drafts
+
+Lists all non-hidden files in the `content/drafts/` directory, sorted alphabetically. Hidden files (names beginning with `.`) are excluded. If the directory does not exist or is empty, an empty array is returned — this endpoint never returns a `404`.
+
+```bash
+curl http://localhost:3000/api/content/drafts
+```
+
+**Example response**
+
+```json
+[
+  "2026-03-29-execution-vs-planning.md",
+  "2026-03-30-minimal-clarity.md",
+  "linkedin-draft-speed-post.md"
+]
+```
+
+<ResponseField name="(array)" type="string[]">
+  Alphabetically sorted array of filenames present in `content/drafts/`. Does not include subdirectory names or hidden files.
+</ResponseField>
+
+---
+
+## GET /api/content/published
+
+Lists all non-hidden files in the `content/published/` directory, sorted alphabetically. Follows the same rules as the drafts endpoint: hidden files are excluded, and an empty directory returns an empty array rather than a `404`.
+
+```bash
+curl http://localhost:3000/api/content/published
+```
+
+**Example response**
+
+```json
+[
+  "2026-03-10-first-post.md",
+  "2026-03-15-iteration-mindset.md",
+  "2026-03-22-building-in-public.md"
+]
+```
+
+<ResponseField name="(array)" type="string[]">
+  Alphabetically sorted array of filenames present in `content/published/`. Does not include subdirectory names or hidden files.
+</ResponseField>
+
+---
+
+<Note>
+  Both endpoints return **filenames only**, not file contents. To read the actual Markdown content of a draft or published file, access it directly from the filesystem:
+
+  ```bash
+  # Read a draft file
+  cat content/drafts/2026-03-30-minimal-clarity.md
+
+  # Read a published file
+  cat content/published/2026-03-22-building-in-public.md
+  ```
+
+  The `contentCount` field in `GET /api/status` reflects the combined total of drafts and published files — it is computed as `drafts.length + published.length`.
+</Note>

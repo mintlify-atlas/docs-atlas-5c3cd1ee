@@ -1,0 +1,194 @@
+---
+title: "Integrate Polysona with OpenAI Codex"
+sidebarTitle: "Codex"
+description: "Set up Polysona as a Codex-native agent harness using AGENTS.md auto-recognition and skill syncing to run persona commands directly in your Codex session."
+---
+
+Codex is the primary integration target for Polysona. When you open Codex in the repo root, it automatically recognizes `AGENTS.md` and loads the full agent catalog and architecture overview. Skills live in `skills/` and are mirrored to `.agents/skills/` via a sync script — Codex auto-discovers that path, making all eight persona commands immediately available in your session with the `$` prefix.
+
+## How Codex Integration Works
+
+Polysona uses three mechanisms together to give Codex full context:
+
+- **`AGENTS.md` auto-recognition** — Codex reads `AGENTS.md` from the repo root automatically. It contains the agent catalog, architecture overview, and quick-start instructions for both Codex and Claude Code.
+- **Skill mirroring** — Codex discovers repo skills from `.agents/skills/`. The `scripts/sync-codex-skills.mjs` script copies every subdirectory from `skills/` into `.agents/skills/` and writes a `.generated-by-sync` marker file. This directory is already pre-synced in the repo; you only need to re-run the script after editing `skills/`.
+- **`$` command prefix** — All persona commands use a `$` prefix in Codex: `$interview`, `$introduce`, `$trend`, `$content [platform]`, `$qa`, `$publish`, `$status`, `$export`.
+
+## Setup
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/LilMGenius/polysona.git
+    cd polysona
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    <CodeGroup>
+      ```bash bun
+      bun install
+      ```
+      ```bash npm
+      npm install
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Sync skills to .agents/skills">
+    This step mirrors `skills/` into `.agents/skills/` so Codex can discover them. The repo ships with a pre-synced copy, but run this after any edits to `skills/`.
+
+    <CodeGroup>
+      ```bash bun
+      bun run codex:skills:sync
+      ```
+      ```bash node
+      node ./scripts/sync-codex-skills.mjs
+      ```
+    </CodeGroup>
+
+    The sync script output looks like:
+
+    ```
+    Synced interview -> /path/to/.agents/skills/interview
+    Synced introduce -> /path/to/.agents/skills/introduce
+    Synced trend -> /path/to/.agents/skills/trend
+    Synced content -> /path/to/.agents/skills/content
+    Synced qa -> /path/to/.agents/skills/qa
+    Synced publish -> /path/to/.agents/skills/publish
+    Synced status -> /path/to/.agents/skills/status
+    Synced export -> /path/to/.agents/skills/export
+    ```
+  </Step>
+
+  <Step title="Open Codex in the repo directory">
+    Launch Codex with the repo root as your working directory. `AGENTS.md` is auto-discovered and the skills from `.agents/skills/` become available.
+  </Step>
+
+  <Step title="Start your persona pipeline">
+    Run `$interview` to begin the 10-framework profiler flow.
+
+    ```
+    $interview
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  If an updated skill does not appear in Codex after running the sync script, restart your Codex session. Codex reads `.agents/skills/` at session start.
+</Note>
+
+## Agent Definitions
+
+The following agents are declared in `agents/openai.yaml` and correspond to the five pipeline stages:
+
+```yaml agents/openai.yaml
+# Polysona — Codex agent definitions
+agents:
+  - name: profiler
+    description: Deep psychology-based interviewer using 10 frameworks to extract unconscious patterns
+    skill: $interview
+  - name: trendsetter
+    description: Domain trend detector that recommends content topics based on your persona
+    skill: $trend
+  - name: content-writer
+    description: Platform-specific content generator conditioned on your persona
+    skill: $content
+  - name: virtual-follower
+    description: QA simulator that evaluates content as virtual followers and recommends TOP 5
+    skill: $qa
+  - name: admin
+    description: Publisher and performance tracker for content lifecycle management
+    skill: $publish
+```
+
+## Skill Sync Script
+
+The sync script (`scripts/sync-codex-skills.mjs`) does three things:
+
+1. Reads every subdirectory from `skills/` (the source of truth for skill definitions).
+2. Removes the existing `.agents/skills/<name>` directory (if present) and copies the updated version in.
+3. Writes a `.generated-by-sync` marker file into `.agents/skills/` documenting the purpose of the directory.
+
+**When to re-run it:**
+
+- After adding a new skill directory under `skills/`
+- After editing an existing skill's `SKILL.md` or supporting files
+- After pulling upstream changes that modify `skills/`
+
+You do **not** need to re-run it just to start a new Codex session — the synced copy in `.agents/skills/` persists in the repo.
+
+## Command Reference
+
+| Command | Agent | Purpose |
+|---|---|---|
+| `$interview` | profiler | Run the 10-framework psychology interview to extract persona data |
+| `$introduce` | — | Inject the active persona into the current session context |
+| `$trend` | trendsetter | Scan for domain trend topics relevant to your persona |
+| `$content [platform]` | content-writer | Generate platform-specific drafts conditioned on your persona |
+| `$qa` | virtual-follower | Simulate virtual followers and surface the TOP 5 draft recommendations |
+| `$publish` | admin | Publish selected content and record engagement metadata |
+| `$status` | — | Display the active persona and current pipeline state |
+| `$export` | — | Export persona-derived instructions into generated files for another workspace |
+
+<Tip>
+  Run `$status` at any time to see which persona is currently active and where you are in the pipeline.
+</Tip>
+
+## Lifecycle Hooks
+
+Polysona ships three lifecycle hook scripts declared in `hooks/hooks.json`. Whether these hooks are executed automatically depends on your Codex host version's support for repo-level hook manifests.
+
+```json hooks/hooks.json
+{
+  "description": "Polysona lifecycle hooks for persona management",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "bash",
+            "command": "bash hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "bash",
+            "command": "bash hooks/pre-tool-use.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "bash",
+            "command": "bash hooks/post-tool-use.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+<CardGroup cols={3}>
+  <Card title="SessionStart" icon="play">
+    **`hooks/session-start.sh`** — Reads `personas/_active.md` to find the active persona, prints the first 10 lines of `persona.md`, and echoes the four core PLOON rules (no speculation, PLOON format, append-only interview-log, 10 frameworks / 5 ego layers). If no persona is found, it prompts you to run `/interview`.
+  </Card>
+  <Card title="PreToolUse" icon="shield">
+    **`hooks/pre-tool-use.sh`** — Guards against PLOON data loss. When the `Write` tool targets a path matching `personas/*`, it prints a warning reminding you to read the file first and to append to the interview-log section rather than overwriting the compressed core.
+  </Card>
+  <Card title="PostToolUse" icon="eye">
+    **`hooks/post-tool-use.sh`** — Scans tool output for common AI verbosity patterns (`certainly`, `absolutely`, `as an AI`, etc.) and prints a warning when they are detected, helping maintain a direct, non-sycophantic output style.
+  </Card>
+</CardGroup>
+
+<Warning>
+  Hook auto-execution depends on host support. Do not assume every Codex environment runs these hooks automatically. You can invoke them manually (`bash hooks/session-start.sh`) to verify behavior in your environment.
+</Warning>

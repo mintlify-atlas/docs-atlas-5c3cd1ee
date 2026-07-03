@@ -1,0 +1,109 @@
+{
+  "projectType": "framework",
+  "projectName": "Polysona",
+  "projectDescription": "A metacognition-driven multi-persona extraction and orchestration framework that uses 10 psychology frameworks to build, manage, and run persona-conditioned AI agents across Codex, Claude Code, and other agent runtimes.",
+  "theme": "luma",
+  "primaryColor": "#0d9488",
+  "lightColor": "#99f6e4",
+  "darkColor": "#134e4a",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/persona-model",
+              "concepts/psychology-frameworks",
+              "concepts/ploon-format",
+              "concepts/ego-layers"
+            ]
+          },
+          {
+            "group": "Agents",
+            "pages": [
+              "agents/overview",
+              "agents/profiler",
+              "agents/trendsetter",
+              "agents/content-writer",
+              "agents/virtual-follower",
+              "agents/admin"
+            ]
+          },
+          {
+            "group": "Skills & Commands",
+            "pages": [
+              "skills/interview",
+              "skills/introduce",
+              "skills/trend",
+              "skills/content",
+              "skills/qa",
+              "skills/publish",
+              "skills/status",
+              "skills/export"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/codex",
+              "integrations/claude-code",
+              "integrations/dashboard"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "REST API",
+            "pages": [
+              "api/overview",
+              "api/personas",
+              "api/content",
+              "api/agents"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "10-framework deep psychology interview engine (Western depth, Western supplement, Eastern reflection)",
+    "Multi-persona extraction into structured PLOON format (persona.md, nuance.md, accounts.md)",
+    "5-agent content pipeline: profiler → trendsetter → content-writer → virtual-follower → admin",
+    "Platform-specific content generation for X, Threads, LinkedIn, Naver Blog, and Brunch",
+    "Virtual follower QA simulation with 20 audience archetypes and TOP 5 draft selection",
+    "Portability: personas export to CLAUDE.md or AGENTS.md for use in any AI agent runtime",
+    "Local-first dashboard built with Hono + React for pipeline visibility",
+    "Lifecycle hooks for session start, pre-tool use, and post-tool use"
+  ],
+  "publicApiSurface": [
+    "GET /api/personas",
+    "GET /api/personas/:id",
+    "GET /api/personas/:id/interview-log",
+    "GET /api/personas/:id/qa-simulation",
+    "GET /api/content/drafts",
+    "GET /api/content/published",
+    "GET /api/agents/status",
+    "GET /api/status",
+    "$interview / /interview — start or resume psychology interview",
+    "$introduce / /introduce — inject persona into active session",
+    "$trend / /trend — scan trending topics matched to persona",
+    "$content [platform] / /content [platform] — generate platform-specific drafts",
+    "$qa / /qa — run virtual follower QA simulation",
+    "$publish / /publish — publish and track content",
+    "$status / /status — show pipeline and persona status",
+    "$export / /export — export persona to CLAUDE.md or AGENTS.md"
+  ]
+}

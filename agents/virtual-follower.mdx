@@ -1,0 +1,160 @@
+---
+title: "Virtual-Follower Agent: QA Simulation with 20 Archetypes"
+sidebarTitle: "Virtual-Follower"
+description: "The Virtual-Follower runs in context:fork and scores content drafts across 20 audience archetypes on hook, empathy, shareability, CTA, and platform fit."
+---
+
+The Virtual-Follower is Polysona's quality assurance layer. Before any draft goes to the admin for publishing, it passes through a simulation of 20 distinct audience archetypes — each reading the draft through their own lens and scoring it independently. The agent then performs a rolemodel gap analysis, comparing draft style against the benchmarks in `accounts.md`, and returns a ranked TOP 5 recommendation list. The user selects one of the TOP 5 before the admin agent publishes.
+
+## Configuration
+
+| Field | Value |
+|---|---|
+| `name` | `virtual-follower` |
+| `context` | `fork` |
+| `tools` | `Read`, `Write` |
+| Codex command | `$qa` |
+| Claude Code command | `/qa` |
+
+## Role
+
+The Virtual-Follower performs three jobs:
+
+1. **Multi-audience simulation** — evaluates each draft as 20 different follower archetypes, applying each archetype's occupation, age, and platform expectations.
+2. **Rolemodel-gap scoring** — compares draft style against top-performing cues in `accounts.md` rolemodel entries, identifying both alignment and deficiency.
+3. **TOP 5 recommendation** — aggregates scores and returns a numbered TOP 5 list with rationale for each pick.
+
+## The `context: fork` Execution Mode
+
+The Virtual-Follower runs in `context: fork`, which creates an execution context that is fully isolated from the content-writer's generation session. This is a deliberate architectural guarantee: QA evaluation must reflect an independent reader's reaction, not a continuation of the drafting context.
+
+<Warning>
+  Do not inject content-writer context into the Virtual-Follower session manually. The `context: fork` boundary ensures that the 20 archetypes evaluate the draft as written — not as the author intended it to be understood.
+</Warning>
+
+## The 20 Follower Archetypes
+
+Scores are computed across all 20 archetypes from `FOLLOWER_ARCHETYPES` in the API. The full archetype table:
+
+| ID | Label | Age | Gender | Occupation |
+|---|---|---|---|---|
+| f01 | 20s female office worker | 24 | F | office |
+| f02 | 30s male developer | 32 | M | dev |
+| f03 | 40s self-employed | 43 | M | self |
+| f04 | startup founder | 29 | M | founder |
+| f05 | general follower | 27 | F | general |
+| f06 | 20s male student | 21 | M | student |
+| f07 | 30s female marketer | 35 | F | marketing |
+| f08 | 40s male executive | 47 | M | executive |
+| f09 | 20s female creator | 23 | F | creator |
+| f10 | 30s male engineer | 31 | M | engineer |
+| f11 | 50s female entrepreneur | 52 | F | entrepreneur |
+| f12 | 20s non-binary designer | 26 | NB | design |
+| f13 | 30s male product manager | 34 | M | pm |
+| f14 | 40s female educator | 41 | F | education |
+| f15 | 20s male gamer | 22 | M | gaming |
+| f16 | 30s female researcher | 33 | F | research |
+| f17 | 40s male consultant | 44 | M | consulting |
+| f18 | 20s female influencer | 25 | F | influencer |
+| f19 | 30s male journalist | 37 | M | media |
+| f20 | 50s male investor | 55 | M | investor |
+
+## The 5 Scoring Dimensions
+
+Each archetype scores each draft on five dimensions. All scores fall in the **40–95 range**.
+
+| Dimension | Key Question |
+|---|---|
+| `hook` | Does the first line stop scrolling? |
+| `empathy` | Does the intended audience relate quickly? |
+| `share` | Would they RT / repost / share? |
+| `cta` | Would they comment, follow, or click? |
+| `platform_fit` | Does it match the platform's reward patterns? |
+
+The total score for each draft per archetype is the sum of all five dimension scores. Archetypes are ranked by total score descending. The TOP 5 are the five archetypes with the highest totals.
+
+## TOP 5 Selection and Output
+
+The Virtual-Follower returns a numbered TOP 5 list. For each of the five top-ranked recommendations, the output includes:
+
+- **Total score** — sum of all dimension scores
+- **Strengths** — what the draft does well for this archetype
+- **Weaknesses** — what is missing or underperforming
+- **Rolemodel gap note** — where the draft aligns with or diverges from `accounts.md` rolemodel style benchmarks
+
+## Input Sources
+
+| Source | Used For |
+|---|---|
+| `content/drafts/` (latest file) | Draft text to evaluate |
+| `accounts.md` (rolemodel section) | Rolemodel style benchmark comparison |
+| `accounts.md` (virtual section) | Audience archetype context |
+
+<Note>
+  If no draft file exists in `content/drafts/`, the Virtual-Follower stops and reports that QA is blocked until `/content` creates one. It does not proceed on draft-less input.
+</Note>
+
+## Mandatory Execution Workflow
+
+<Steps>
+  <Step title="Read the latest draft">
+    Load the most recent file from `content/drafts/` unless the user explicitly provided draft text in the current request.
+  </Step>
+  <Step title="Evaluate across archetypes and dimensions">
+    Score the draft against all 20 follower profiles on all 5 dimensions. Run rolemodel gap analysis against `accounts.md`.
+  </Step>
+  <Step title="Write QA report (required)">
+    Use the Write tool to save the QA report to:
+
+    ```
+    content/qa/YYYY-MM-DD-platform-slug.md
+    ```
+
+    This step is mandatory. Do not proceed without writing the file.
+  </Step>
+  <Step title="Verify the written file">
+    Immediately use the Read tool on the saved QA report to confirm it exists and reflects the evaluation. Only after successful verification, return the TOP 5 and the confirmed saved path.
+  </Step>
+  <Step title="Report on failure">
+    If the write fails, report it explicitly. Do not pretend QA storage succeeded.
+  </Step>
+</Steps>
+
+### QA Report File Template
+
+```md
+# QA Report — <PLATFORM> — <SLUG>
+
+## metadata
+
+evaluated_at | <YYYY-MM-DD>
+persona      | <persona-id>
+source_draft | <path>
+
+## top5
+
+1. <recommendation>
+   - score: <total>
+   - strengths: <text>
+   - weaknesses: <text>
+   - rolemodel_gap: <alignment and deficiency notes>
+
+2. <recommendation>
+   ...
+```
+
+## Invocation
+
+<CodeGroup>
+  ```bash Codex
+  $qa
+  ```
+
+  ```bash Claude Code
+  /qa
+  ```
+</CodeGroup>
+
+<Tip>
+  After reviewing the TOP 5, select the draft variation you want to publish and pass it to the admin agent with `$publish` / `/publish`.
+</Tip>

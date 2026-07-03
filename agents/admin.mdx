@@ -1,0 +1,130 @@
+---
+title: "Admin Agent: Publishing Flow and Performance Tracking"
+sidebarTitle: "Admin"
+description: "The Admin agent publishes selected content to content/published/, generates a platform-specific checklist, and captures metadata for performance tracking."
+---
+
+The Admin agent is the final stage of the Polysona content loop. It takes the draft selected from the virtual-follower's TOP 5, saves it to `content/published/`, and generates a platform-specific publishing checklist so you know exactly what to do before hitting post. It also captures structured performance metadata — impressions, likes, reposts, replies, and engagement rate — so that real engagement data can be fed back into the persona over time. This feedback loop means the pipeline improves with every published piece.
+
+## Configuration
+
+| Field | Value |
+|---|---|
+| `name` | `admin` |
+| `tools` | `Read`, `Write`, `Bash` |
+| Codex command | `$publish` |
+| Claude Code command | `/publish` |
+
+## Role
+
+The Admin agent performs four jobs:
+
+1. **Publishing storage** — saves the final selected draft to `content/published/` with a standardized filename.
+2. **Platform-specific checklist** — returns actionable publishing steps appropriate to the target platform.
+3. **Metadata capture** — records `platform`, `published_at`, `hook`, `engagement_target`, and `actual_engagement` fields alongside the draft.
+4. **Feedback loop updates** — when engagement data is later added, updates `nuance.md` platform patterns based on what worked and what failed.
+
+## Mandatory Execution Workflow
+
+<Steps>
+  <Step title="Parse platform and draft">
+    Read the target platform and the final draft text from the current request.
+  </Step>
+  <Step title="Derive a filesystem-safe slug">
+    Generate a slug from the draft topic or its central phrase to use as part of the output filename.
+  </Step>
+  <Step title="Write published file (required)">
+    Use the Write tool to create the published file at:
+
+    ```
+    content/published/YYYY-MM-DD-platform-slug.md
+    ```
+
+    This step is mandatory. Do not proceed without writing the file.
+  </Step>
+  <Step title="Verify the written file">
+    Immediately use the Read tool on the saved file to confirm it exists and verify the final contents. Only after successful verification, return the saved path and the publishing checklist.
+  </Step>
+  <Step title="Return checklist and path">
+    Provide the confirmed saved path and the platform-specific publishing checklist.
+  </Step>
+  <Step title="Report on failure">
+    If the write fails, report it explicitly. Do not pretend the file was saved.
+  </Step>
+</Steps>
+
+## Metadata Contract
+
+Every published file includes a structured metadata block with the following fields:
+
+| Field | Description |
+|---|---|
+| `platform` | Target publishing platform |
+| `published_at` | ISO date of publication |
+| `status` | `ready-to-post` at creation time |
+| `persona` | Persona name or ID |
+| `char_count` | Character count of the final draft |
+| `hook` | The opening line (for later pattern analysis) |
+| `engagement_target` | Anticipated engagement goal |
+| `actual_engagement` | Initially blank — filled in after posting |
+
+## Published File Template
+
+```md
+# Published: <PLATFORM> — <SLUG>
+
+## metadata
+
+platform     | <platform>
+published_at | <YYYY-MM-DD>
+status       | ready-to-post
+persona      | <persona-name-or-id>
+char_count   | <character-count>
+
+## final_draft
+
+<final draft text>
+
+## performance_tracking
+
+metric           | baseline | day1 | day7 | day30
+impressions      | —        | —    | —    | —
+likes            | —        | —    | —    | —
+reposts          | —        | —    | —    | —
+replies          | —        | —    | —    | —
+engagement_rate  | —        | —    | —    | —
+```
+
+## The Feedback Loop
+
+The `performance_tracking` table is designed to be filled in after the content goes live. When you update the `day1`, `day7`, or `day30` columns with real engagement data, the Admin agent can read that data and update `nuance.md` platform patterns accordingly — capturing what hook structures performed well, which CTA types drove replies, and which topics over- or under-delivered against the engagement target.
+
+<Info>
+  This feedback loop is what makes Polysona's persona model self-improving. Each published piece, once its performance data is captured, refines the voice and platform patterns the content-writer will use in the next cycle.
+</Info>
+
+## Integration Rule
+
+All published outputs must land in `content/published/`. This is a hard requirement — the dashboard and content pipeline discover published content by scanning this directory. Platform-specific subdirectories or persona-scoped paths are not used.
+
+<Warning>
+  Do not save published outputs to persona-specific subdirectories (e.g., `personas/{id}/published/`). The pipeline's discovery logic only reads from `content/published/`.
+</Warning>
+
+## Operating Guardrails
+
+- Preserve append-first history for published outputs. Never overwrite an existing published file.
+- Keep metadata machine-readable and human-auditable.
+- The `actual_engagement` field starts blank — fill it only after real data is available.
+
+## Invocation
+
+<CodeGroup>
+  ```bash Codex
+  $publish
+  ```
+
+  ```bash Claude Code
+  /publish
+  ```
+</CodeGroup>

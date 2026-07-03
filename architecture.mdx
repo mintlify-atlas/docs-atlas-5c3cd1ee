@@ -1,0 +1,176 @@
+---
+title: "Polysona Architecture: Orchestrator, Agents, and Data Flow"
+sidebarTitle: "Architecture"
+description: "Learn how Polysona's orchestrator coordinates 5 agents, 8 skills, and the PLOON data format to run a persona-conditioned content pipeline."
+---
+
+Polysona is a metacognition-driven orchestration framework. At its center sits an orchestrator that coordinates five specialized agents, eight skills, and a flat Markdown data layer into a two-phase pipeline: a one-time SETUP phase that extracts and structures your psychological identity, and a repeatable LOOP phase that uses that identity to produce persona-conditioned content. Every component — agents, skills, personas, outputs — is stored as plain text and versioned in Git. There are no external databases, no cloud state, and no vendor lock-in.
+
+## Two-Phase Design
+
+The architecture is divided into two distinct phases that never overlap. SETUP runs once (or periodically when you want a refresh). LOOP runs every time you produce content.
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│                    POLYSONA (Orchestrator)                  │
+│     Build and run multiple personas across any AI agent.    │
+│          Manage all persona data and agents                 │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                 SETUP (One-time)                     │    │
+│  │                                                     │    │
+│  │  ① Profiler                                          │    │
+│  │     Interview → Extract logs                         │    │
+│  │         │                                           │    │
+│  │         ▼                                           │    │
+│  │  [Polysona structures logs]                          │    │
+│  │     → persona.md + nuance.md + accounts.md           │    │
+│  │                                                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                        │ persona data                       │
+│                        ▼                                    │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │              LOOP (Per Content)                      │    │
+│  │                                                     │    │
+│  │  ② Trendsetter                                       │    │
+│  │     Trend topics collection                          │    │
+│  │         │                                           │    │
+│  │         ▼                                           │    │
+│  │  ③ Content-Writer                                    │    │
+│  │     persona + trend → Platform-specific drafts       │    │
+│  │         │                                           │    │
+│  │         ▼                                           │    │
+│  │  ④ Virtual-Follower (QA)                             │    │
+│  │     Evaluate by rolemodel → TOP 5 → User picks       │    │
+│  │         │                                           │    │
+│  │         ▼                                           │    │
+│  │  ⑤ Admin                                             │    │
+│  │     Publish → Track engagement → Feedback            │    │
+│  │                                                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+<Info>
+  The SETUP phase produces the persona dataset that all LOOP agents read before executing. Running `$introduce` / `/introduce` at the start of each session injects this data into the active agent context.
+</Info>
+
+## Data Layer
+
+Polysona stores all operational data in Markdown files. Git is the database and history ledger — there is no separate persistence layer. This makes the entire system auditable, diffable, and portable.
+
+The PLOON table format is used throughout persona files for machine-readable structured data: `[table#N](col1,col2,...)` followed by pipe-delimited rows. This keeps data compact and parseable while remaining human-readable.
+
+**Persona dataset** — Each persona is stored under `personas/{id}/` using three files:
+
+| File | Contents |
+|---|---|
+| `persona.md` | Core psychological profile: conscious goals, unconscious patterns, values, decision modes, energy sources, and blind spots |
+| `nuance.md` | Voice characteristics and platform-specific tone adjustments |
+| `accounts.md` | Social account mapping, rolemodel references, and virtual follower profiles used by the QA agent |
+
+**Active persona** — The system reads `personas/_active.md` to determine which persona is currently active. If the file is absent or unset, the system defaults to the `default` persona.
+
+**Content artifacts** — Trend reports, drafts, QA reports, and published outputs are persisted under `content/` so each pipeline run produces a traceable artifact.
+
+<Note>
+  Because Git is the database, you can branch, diff, and roll back persona changes just like code. This also means your entire psychological model travels with your repo.
+</Note>
+
+## Agent Catalog
+
+Five agents form the core of the Polysona pipeline. Each agent has a fixed role, is invoked by a specific command, and reads the persona data it needs before generating output.
+
+| Agent | Role | Codex Command | Claude Code Command |
+|---|---|---|---|
+| **profiler** | Deep psychology interviewer using 10 frameworks to extract unconscious patterns and structure them into persona files | `$interview` | `/interview` |
+| **trendsetter** | Domain trend detector that scans for relevant topics and filters them by platform fit and persona alignment | `$trend` | `/trend` |
+| **content-writer** | Platform-specific content generator that conditions every draft on the active persona's voice, values, and platform patterns | `$content [platform]` | `/content [platform]` |
+| **virtual-follower** | QA simulator that evaluates drafts as virtual followers and rolemodels, scores them against a gap model, and recommends the top 5 | `$qa` | `/qa` |
+| **admin** | Publisher and performance tracker that handles the publishing flow, captures metadata, and feeds engagement data back into the persona loop | `$publish` | `/publish` |
+
+## Skills System
+
+Polysona defines 8 skills that implement the commands available to agents. Skills are stored as directories under `skills/` and are loaded differently depending on the runtime.
+
+| Skill | Command | Purpose |
+|---|---|---|
+| `interview` | `$interview` / `/interview` | Runs the 10-framework psychology interview and extracts structured logs |
+| `introduce` | `$introduce` / `/introduce` | Injects the active persona into the current session context |
+| `trend` | `$trend` / `/trend` | Detects domain trends and filters them for persona and platform fit |
+| `content` | `$content [platform]` / `/content [platform]` | Generates persona-conditioned, platform-specific content drafts |
+| `qa` | `$qa` / `/qa` | Simulates follower reactions, scores drafts, and surfaces the top 5 |
+| `publish` | `$publish` / `/publish` | Publishes the selected draft and records engagement metadata |
+| `status` | `$status` / `/status` | Reports the active persona and current pipeline state |
+| `export` | `$export` / `/export` | Exports the active persona as `CLAUDE.md` and `AGENTS.md` for other workspaces |
+
+**Claude Code** reads skills through the plugin manifest at `.claude-plugin/plugin.json`. The manifest registers all 8 skill directories and the 5 agent definitions, and Claude Code resolves them at plugin install time.
+
+**Codex** auto-discovers skills from `.agents/skills/`. This repo mirrors the contents of `skills/` into that directory. If you edit a skill under `skills/`, re-run the sync script to propagate the changes:
+
+```bash
+bun run codex:skills:sync
+# or equivalently:
+node ./scripts/sync-codex-skills.mjs
+```
+
+<Note>
+  After syncing, restart your Codex session if an updated skill does not appear immediately. Codex caches skill definitions at session start.
+</Note>
+
+## Lifecycle Hooks
+
+Polysona defines lifecycle hooks in `hooks/hooks.json`. Three hook types are supported:
+
+| Hook | Trigger |
+|---|---|
+| `SessionStart` | Fires when an agent session begins — typically used to load the active persona into context |
+| `PreToolUse` | Fires before a tool or skill executes — used for context validation and pre-flight checks |
+| `PostToolUse` | Fires after a tool or skill completes — used to persist outputs and update pipeline state |
+
+<Warning>
+  Hook execution is host-dependent. Not every agent runtime automatically processes `hooks/hooks.json` in the same way. Verify hook behavior for your specific runtime before relying on them for critical context loading.
+</Warning>
+
+## Local Dashboard
+
+Polysona ships with a local-first dashboard built on Hono (server) and React (client). It visualizes your personas, pipeline state, agent activity, and content artifacts without any cloud dependency.
+
+```bash
+bun run dev
+# Open http://localhost:3000
+```
+
+The server exposes two API routes used by the dashboard client:
+
+| Route | Purpose |
+|---|---|
+| `GET /api/personas` | Returns the list of personas discovered under `personas/` |
+| `GET /api/status` | Returns system version, active persona, and pipeline status |
+
+The dashboard is served by a Hono server defined in `server/index.ts`. In production mode (or when `dist/index.html` exists), it serves the Vite-built React client from `./dist`. In development, it serves the raw client from `./client`.
+
+## Component Summary
+
+<CardGroup cols={2}>
+  <Card title="Orchestrator" icon="sitemap">
+    Coordinates all agents and skills. Reads `personas/_active.md` to route persona data into every pipeline step.
+  </Card>
+  <Card title="5 Agents" icon="robot">
+    profiler, trendsetter, content-writer, virtual-follower, and admin. Each agent has a fixed role and command invocation.
+  </Card>
+  <Card title="8 Skills" icon="wrench">
+    interview, introduce, trend, content, qa, publish, status, export. Stored in `skills/` and synced to `.agents/skills/` for Codex.
+  </Card>
+  <Card title="PLOON Data Layer" icon="database">
+    All persona data in Markdown under `personas/{id}/`. Git is the database. No external persistence required.
+  </Card>
+  <Card title="Lifecycle Hooks" icon="bolt">
+    SessionStart, PreToolUse, PostToolUse hooks defined in `hooks/hooks.json`. Execution is host-dependent.
+  </Card>
+  <Card title="Local Dashboard" icon="chart-bar">
+    Hono + React dashboard at `localhost:3000`. Launch with `bun run dev`. Visualizes personas, pipeline, and agent state.
+  </Card>
+</CardGroup>

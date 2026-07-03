@@ -1,0 +1,92 @@
+---
+title: "Polysona REST API: Local Dashboard Endpoints"
+sidebarTitle: "Overview"
+description: "The Polysona REST API is served locally by a Hono server on port 3000. It exposes persona data, content pipeline state, agent status, and QA simulation results."
+---
+
+Polysona's REST API is a local-first interface — it runs entirely on your own machine and requires no authentication, API keys, or remote service connectivity. The server reads persona data, content files, and skill definitions directly from your filesystem and exposes them as JSON endpoints consumed by the dashboard UI. You can also call these endpoints directly from scripts, terminals, or any HTTP client.
+
+## Base URL
+
+All API routes are served under the `/api` prefix:
+
+```
+http://localhost:3000/api
+```
+
+## Starting the Server
+
+<Steps>
+  <Step title="Install dependencies">
+    Make sure Bun is installed, then install project dependencies from the project root.
+  </Step>
+  <Step title="Run the development server">
+    ```bash
+    bun run dev
+    ```
+    The server starts on port 3000 by default. You will see:
+    ```
+    Polysona dashboard server listening on http://localhost:3000
+    ```
+  </Step>
+  <Step title="Verify the server is running">
+    ```bash
+    curl http://localhost:3000/api/status
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  The `PORT` environment variable overrides the default port. Set `PORT=4000 bun run dev` to run on a different port. Update your base URL accordingly.
+</Note>
+
+## Authentication
+
+None required. This API is local-only and not intended for public exposure. No tokens, cookies, or headers are needed for any endpoint.
+
+## Response Format
+
+All endpoints return JSON. Successful responses return the relevant data structure directly. There is no shared envelope wrapper — the shape varies per endpoint and is documented on each endpoint's page.
+
+## Error Handling
+
+When a resource is not found (for example, a persona ID that does not exist on disk), the API returns a `404` status with a JSON error body:
+
+```json
+{
+  "error": "not found"
+}
+```
+
+No other error shapes are currently returned by the API.
+
+## Endpoints at a Glance
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/personas` | List all persona directories with IDs and names |
+| `GET` | `/api/personas/:id` | Read full PLOON data for a single persona |
+| `GET` | `/api/personas/:id/interview-log` | Return parsed interview log entries for a persona |
+| `GET` | `/api/personas/:id/qa-simulation` | Run a scored QA simulation across 20 follower archetypes |
+| `GET` | `/api/content/drafts` | List filenames in `content/drafts/` |
+| `GET` | `/api/content/published` | List filenames in `content/published/` |
+| `GET` | `/api/agents/status` | Return status and skill file existence for all 5 agents |
+| `GET` | `/api/status` | Return system-wide persona count, content count, and last activity |
+
+## Detailed Endpoint Documentation
+
+<CardGroup cols={3}>
+  <Card title="Personas" icon="user" href="/api/personas">
+    List personas, read PLOON data, retrieve interview logs, and run QA simulations across 20 follower archetypes.
+  </Card>
+  <Card title="Content" icon="file-lines" href="/api/content">
+    List draft and published content filenames from the content pipeline directories.
+  </Card>
+  <Card title="Agents & Status" icon="robot" href="/api/agents">
+    Inspect agent health, skill file presence, and overall system status including version and last activity.
+  </Card>
+</CardGroup>
+
+## Data Source
+
+This API reads exclusively from files on disk. Persona data lives under `personas/<id>/` as PLOON-format Markdown files (`persona.md`, `nuance.md`, `accounts.md`). Content files live under `content/drafts/` and `content/published/`. Agent skill definitions live under `skills/`. No database is involved — the filesystem is the source of truth.

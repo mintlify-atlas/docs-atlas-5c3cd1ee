@@ -1,0 +1,315 @@
+---
+title: "PLOON: Polysona's Structured Markdown Data Format"
+sidebarTitle: "PLOON Format"
+description: "PLOON is Polysona's compact, parseable Markdown format for storing persona data — sections, typed tables, key-value pairs, and date-stamped log entries."
+---
+
+PLOON is Polysona's structured Markdown format for storing all persona data. Every persona file — `persona.md`, `nuance.md`, and `accounts.md` — is written in PLOON. The format is designed to be both human-readable as plain Markdown and machine-parseable as a structured object. There is no separate database: Git is the database, and PLOON files are the records. The `server/lib/ploon.ts` parser turns any PLOON file into a typed JavaScript object at runtime.
+
+## The 4 Element Types
+
+PLOON has exactly four syntactic constructs. Each maps to a different data structure in the parsed output.
+
+### 1. Sections
+
+```markdown
+## SectionName
+```
+
+A level-2 heading creates a new **scope** in the parsed object. All element types that follow (until the next `##`) are nested under that section's key. This allows a single file to contain multiple independent data domains.
+
+**Parsed result:** A nested object key on the root result, e.g. `result["core"]`, `result["decide"]`.
+
+---
+
+### 2. Typed Tables
+
+```markdown
+[tableName#N](col1,col2,col3)
+value1|value2|value3
+value4|value5|value6
+```
+
+A table header line declares the table name, a sequence number (`#N`), and column names. Pipe-delimited rows that follow are parsed as an array of objects — one object per row, with keys from the column declaration.
+
+- The `#N` suffix is for versioning or ordering; the parser uses it to identify the header line, not to index the array.
+- An empty line after the last row signals the end of the table.
+
+**Parsed result:** An array under `scope[tableName]`, e.g. `scope["table"] = [{col1: "value1", col2: "value2", ...}]`.
+
+---
+
+### 3. Key-Value Pairs
+
+```markdown
+key: value
+```
+
+Any line matching `key: value` (outside a table context) is parsed as a scalar field directly on the current scope. An empty line or a new element type resets the table context.
+
+**Parsed result:** `scope["key"] = "value"` as a string.
+
+---
+
+### 4. Date-Stamped Entries
+
+```markdown
+~YYYY-MM-DD: content
+```
+
+Lines beginning with `~` followed by an ISO date are parsed as **chronological log entries** and appended to a special `entries` array on the current scope. This is the mechanism behind `interview-log`. Every Profiler extraction line uses this format.
+
+**Parsed result:** `scope.entries.push({ date: "YYYY-MM-DD", content: "..." })`.
+
+<Note>
+  Date-stamped entries are the only element type that produces an `entries` array. All other element types produce named keys. The `entries` array is always append-ordered — the parser preserves insertion sequence.
+</Note>
+
+---
+
+## Annotated Example
+
+The following is the real content of `personas/default/persona.md` with inline annotations:
+
+```markdown
+# Persona: TestUser           ← level-1 heading: document title (not parsed as section)
+
+name: TestUser                ← key-value pair on root scope
+
+## core                       ← section: creates result["core"] scope
+
+[table#1](layer,value,source) ← typed table header: name=table, columns=[layer, value, source]
+unconscious-self|빠른 실행과 반복을 통해 의미를 만드는 사람|McAdams Life Story
+conscious-ideal|단순하고 명확한 것을 추구하는 미니멀리스트|Laddering
+others-see-me|결과 지향적이고 추진력이 강한 사람|Johari Window
+
+## decide                     ← section: creates result["decide"] scope
+
+[table#1](priority,approach,source)
+1|속도 우선, 완벽보다 출시|Laddering
+2|데이터 기반 의사결정|Repertory Grid
+3|최소 단위부터 시작|Clean Language
+
+## energy                     ← section: creates result["energy"] scope
+
+[table#1](source,level,context)
+새로운 아이디어 탐색|높음|항상
+반복 작업|낮음|루틴 상황
+사람들과의 협업|중간|프로젝트 초기
+
+## blind                      ← section: creates result["blind"] scope
+
+[table#1](type,description,source)
+johari|검증 없이 빠르게 진행하는 경향|Johari Window
+defense|불확실성에서 과도한 행동으로 통제 회복|IFS
+
+## interview-log              ← section: creates result["interview-log"] scope
+
+~2026-03-29: McAdams Life Story: 삶의 전환점은 ...   ← date-stamped entry → entries[]
+~2026-03-29: Laddering (+MI+ACT): 속도 -> 기회 포착 ...
+~2026-03-29: GAP: conscious-ideal(minimal clarity) vs unconscious-self(...)
+~2026-03-29: Summary: 스토리 아크가 반응적 생존에서 ...
+```
+
+---
+
+## TypeScript Parser
+
+The parser lives in `server/lib/ploon.ts`. Its public interface is a single function:
+
+```typescript
+export function parsePloon(content: string): Record<string, unknown>
+```
+
+### Full Parser Source
+
+```typescript
+type PloonScope = Record<string, unknown> & { entries?: { date: string; content: string }[] }
+
+export function parsePloon(content: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  let scope = result as PloonScope
+  let table = ''
+  let columns: string[] = []
+  const list = <T>(key: string) => ((scope[key] ??= []) as T[])
+
+  for (const raw of content.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line) {
+      table = ''
+      columns = []
+      continue
+    }
+
+    const section = /^##\s+(.+)$/.exec(line)
+    if (section) {
+      scope = ((result[section[1]] ??= {}) as PloonScope)
+      table = ''
+      columns = []
+      continue
+    }
+
+    const header = /^\[([^\]#]+)#\d+\]\(([^)]*)\)$/.exec(line)
+    if (header) {
+      table = header[1]
+      columns = header[2].split(',').map((value) => value.trim()).filter(Boolean)
+      list<Record<string, string>>(table)
+      continue
+    }
+
+    if (table && /^[^|]+\|/.test(line)) {
+      const values = line.replace(/^\||\|$/g, '').split('|')
+      list<Record<string, string>>(table).push(
+        Object.fromEntries(columns.map((column, index) => [column, values[index]?.trim() ?? ''])),
+      )
+      continue
+    }
+
+    const dateEntry = /^~(\d{4}-\d{2}-\d{2}):\s*(.*)$/.exec(line)
+    if (dateEntry) {
+      ;(scope.entries ??= []).push({ date: dateEntry[1], content: dateEntry[2] })
+      table = ''
+      columns = []
+      continue
+    }
+
+    const keyValue = /^([^:]+):\s*(.*)$/.exec(line)
+    if (keyValue) {
+      scope[keyValue[1].trim()] = keyValue[2].trim()
+      table = ''
+      columns = []
+    }
+  }
+
+  return result
+}
+```
+
+### Parser Behavior Summary
+
+| Input pattern | Action |
+|---|---|
+| Empty line | Clears current table context |
+| `## SectionName` | Switches `scope` to `result[SectionName]` |
+| `[name#N](col1,col2)` | Sets active table name and column definitions |
+| `val1\|val2\|val3` (while table active) | Appends a row object to `scope[table]` |
+| `~YYYY-MM-DD: content` | Appends `{date, content}` to `scope.entries` |
+| `key: value` | Sets `scope[key] = value` as a string |
+
+---
+
+## Parsed JSON Output Example
+
+Given this PLOON input:
+
+```markdown
+name: TestUser
+
+## core
+
+[table#1](layer,value,source)
+unconscious-self|빠른 실행과 반복을 통해 의미를 만드는 사람|McAdams Life Story
+conscious-ideal|단순하고 명확한 것을 추구하는 미니멀리스트|Laddering
+
+## interview-log
+
+~2026-03-29: McAdams Life Story: Turning point from collapse to rebuilding.
+~2026-03-29: GAP: conscious-ideal(minimalism) ↔ unconscious-self(over-engineering under stress)
+```
+
+The parser produces:
+
+```json
+{
+  "name": "TestUser",
+  "core": {
+    "table": [
+      {
+        "layer": "unconscious-self",
+        "value": "빠른 실행과 반복을 통해 의미를 만드는 사람",
+        "source": "McAdams Life Story"
+      },
+      {
+        "layer": "conscious-ideal",
+        "value": "단순하고 명확한 것을 추구하는 미니멀리스트",
+        "source": "Laddering"
+      }
+    ]
+  },
+  "interview-log": {
+    "entries": [
+      {
+        "date": "2026-03-29",
+        "content": "McAdams Life Story: Turning point from collapse to rebuilding."
+      },
+      {
+        "date": "2026-03-29",
+        "content": "GAP: conscious-ideal(minimalism) ↔ unconscious-self(over-engineering under stress)"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Interview-Log Entry Formats
+
+The `interview-log` section uses date-stamped entries exclusively. Two formats appear:
+
+### Framework Evidence Line
+
+```
+~YYYY-MM-DD: FrameworkName: extracted content
+```
+
+Records a single insight attributed to a specific framework. The framework name must match one of the 10 defined frameworks exactly.
+
+**Real examples from `personas/default/persona.md`:**
+```
+~2026-03-29: McAdams Life Story: 삶의 전환점은 첫 번째 프로젝트 실패에서 재건으로의 여정이었다.
+~2026-03-29: Laddering (+MI+ACT): 속도 -> 기회 포착 -> 무관련성에 대한 두려움 (terminal value: 자율성).
+~2026-03-29: Clean Language: 반복적인 은유 '돌파구 직전의 엔진 과열'.
+```
+
+### GAP Line
+
+```
+~YYYY-MM-DD: GAP: LayerA (description) ↔ LayerB (description) - contradiction statement
+```
+
+Records a detected contradiction between two ego layers. The `↔` symbol is mandatory — it signals a bidirectional tension, not a one-way critique.
+
+**Real examples from `profiler.md`:**
+```
+~2026-03-29: GAP: conscious-ideal(minimalism) ↔ unconscious-self(over-engineering under stress)
+~2026-03-29: GAP: others-see-me(result-fixated) ↔ want-to-be-seen(process-oriented mentor)
+~2026-03-29: GAP: rolemodel(high-risk operator) ↔ unconscious-self(risk-avoidant execution pattern)
+```
+
+### Closure Summary Line
+
+```
+~YYYY-MM-DD: Summary: key narrative shifts; top values; dominant metaphors; major blind spots; top GAPs
+```
+
+Appended once per session at interview closure. Consolidates the session's strongest signals in a single compressed entry.
+
+---
+
+## Design Principles
+
+<CardGroup cols={2}>
+  <Card title="Git as Database" icon="code-branch">
+    PLOON files live in version control. Every append to `interview-log` is a commit. History is the audit trail — no separate logging infrastructure needed.
+  </Card>
+  <Card title="Append-Only Logs" icon="list-plus">
+    The `interview-log` section is strictly append-only. Prior entries are never overwritten, reordered, or merged destructively. Corrections are new dated entries.
+  </Card>
+  <Card title="Human-Readable First" icon="eye">
+    PLOON is valid Markdown. Any file renders cleanly in a Markdown viewer without special tooling. Machine parseability is layered on top of readability.
+  </Card>
+  <Card title="Compact by Default" icon="compress">
+    Typed tables replace verbose prose for all machine-readable data. The parser imposes no schema beyond the column names the file declares.
+  </Card>
+</CardGroup>

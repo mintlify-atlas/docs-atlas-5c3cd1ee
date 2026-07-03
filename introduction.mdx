@@ -1,0 +1,80 @@
+---
+title: "Polysona: AI Persona Extraction and Orchestration"
+sidebarTitle: "Introduction"
+description: "Polysona extracts your psychological identity using 10 frameworks and runs it as persona-conditioned agents across Codex, Claude Code, and more."
+---
+
+Every AI agent tool has the same problem: it gives you someone else's answer, or it doesn't know you at all. You get generic output shaped by someone else's defaults, someone else's tone, someone else's priorities. Polysona solves this from the ground up. It begins by interviewing you — deeply, across 10 psychology frameworks — and structures what it learns into a portable persona. That persona then conditions every downstream agent: trend detection, content generation, QA simulation, and publishing. The result is an AI pipeline that doesn't just execute tasks; it executes them as you.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Install Polysona, connect it to Codex or Claude Code, and run your first psychology interview in under 5 minutes.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Understand the two-phase design, 5-agent pipeline, skills system, and data layer that power Polysona.
+  </Card>
+  <Card title="Agents" icon="robot" href="/agents">
+    Explore the profiler, trendsetter, content-writer, virtual-follower, and admin agents in detail.
+  </Card>
+  <Card title="Skills" icon="wrench" href="/skills">
+    Browse the 8 skills — interview, introduce, trend, content, qa, publish, status, and export.
+  </Card>
+</CardGroup>
+
+## The Two-Phase System
+
+Polysona operates in two distinct phases that separate identity extraction from content production.
+
+**SETUP (one-time)** — The profiler agent conducts a deep psychology interview spanning 10 frameworks across Western depth, Western supplement, and Eastern reflection. It surfaces conscious goals, unconscious patterns, and the gaps between them. Polysona then structures the interview logs into three Markdown files: `persona.md`, `nuance.md`, and `accounts.md`. These files become the single source of truth for everything that follows. You only do this once, though you can refresh it periodically.
+
+**LOOP (per content cycle)** — After setup, every content cycle runs through four steps: the trendsetter scans your domain for relevant topics and filters them for platform fit; the content-writer drafts platform-specific posts conditioned on your persona; the virtual-follower simulates how real followers and rolemodels would react, scores the drafts, and surfaces the top five; you pick one; the admin publishes it and captures engagement data that feeds back into future cycles.
+
+## Key Differentiators
+
+**10-framework interview engine.** Polysona uses 10 psychology frameworks — 6 from Western depth psychology, 2 from Western supplement traditions, and 2 from Eastern reflection — to extract a richer psychological model than any single-framework approach. The interview applies defense-bypass prompts to surface patterns that self-reporting alone would miss.
+
+**Multi-persona support.** You are not just one person. Polysona builds and manages multiple personas across different domains — the executive, the creator, the builder — each stored independently under `personas/{id}/` and activatable on demand.
+
+**Portability across any AI agent.** Your extracted persona is not locked into one tool. The `$export` / `/export` command generates `CLAUDE.md` and `AGENTS.md` files that any compatible agent runtime can read, making your persona portable across Codex, Claude Code, and future platforms.
+
+**Platform-specific content generation.** The content-writer adapts tone, format, length, and CTA patterns to each target platform rather than generating a single generic post.
+
+## Supported Platforms
+
+Polysona currently supports content generation for five platforms:
+
+- **X** (formerly Twitter)
+- **Threads**
+- **LinkedIn**
+- **Naver Blog**
+- **Brunch**
+
+<Note>
+  Platform coverage is expanding in future versions. Korean media formats — card news, short-form video scripts, and long-form video scripts — are on the roadmap for v2. English content expansion follows in v3.
+</Note>
+
+## Philosophy
+
+Polysona's behavior is governed by seven agent-enforced principles drawn from its CLAUDE.md operating contract. These are not guidelines — they are hard constraints that every agent and skill must respect.
+
+1. **Execution velocity** — Ship visible outcomes quickly and iterate daily. Progress beats perfection.
+2. **Data flywheel** — Every run should improve persona quality and future outputs. Each cycle feeds the next.
+3. **Extreme pragmatism** — Start from minimal working units. Avoid overengineering.
+4. **Top-down prioritization** — Tackle the hardest constraint first, then descend to smaller problems.
+5. **Facts first** — Verify before deciding. Do not guess when data can be checked.
+6. **Open-source ecosystem** — Build in public for interoperability, trust, and community contribution.
+7. **No speculation** — Uncertain claims are blocked until grounded by evidence.
+
+<Tip>
+  These principles are enforced at the agent level, not just as documentation. If an agent would need to speculate or invent a number, it stops and requests grounded input instead.
+</Tip>
+
+## What Gets Stored
+
+All operational data lives in plain Markdown files. Git is the database and history ledger. The core persona dataset for each persona ID lives in three files:
+
+- `personas/{id}/persona.md` — core psychological profile, values, decision patterns, energy sources, and blind spots
+- `personas/{id}/nuance.md` — voice characteristics and platform-specific tone adjustments
+- `personas/{id}/accounts.md` — social account mapping, rolemodel references, and virtual follower profiles
+
+The active persona is tracked via `personas/_active.md`. If no explicit persona is set, the system defaults to `default`.

@@ -1,0 +1,99 @@
+---
+title: "$content / /content: Generate Platform-Specific Content Drafts"
+sidebarTitle: "content"
+description: "Dispatch the content-writer agent to produce three persona-conditioned draft variations for a specified platform: x, threads, linkedin, naver-blog, or brunch."
+---
+
+The `$content` / `/content` command dispatches the **content-writer** agent to generate three platform-native draft variations conditioned on the active persona. Provide a target platform as the argument and the agent will produce `Draft 1`, `Draft 2`, and `Draft 3`, each adapted to the platform's native patterns, CTA conventions, and the persona's voice. All drafts are saved to disk before the response is returned.
+
+## Invocation
+
+<CodeGroup>
+```bash Codex
+$content x
+$content linkedin
+$content naver-blog
+```
+
+```bash Claude Code
+/content threads
+/content brunch
+/content linkedin
+```
+</CodeGroup>
+
+The `$ARGUMENTS` value is the **target platform**. Accepted values:
+
+| Value | Platform |
+|---|---|
+| `x` | X (Twitter) |
+| `threads` | Threads |
+| `linkedin` | LinkedIn |
+| `naver-blog` | Naver Blog |
+| `brunch` | Brunch |
+
+## What it does
+
+- Reads `personas/_active.md` to resolve the active persona directory.
+- Loads `personas/{active}/persona.md`, `nuance.md`, and `accounts.md` to build the full persona context.
+- Passes the platform argument and current topic context to the **content-writer** agent.
+- Returns **3 platform-native draft variations** labelled `Draft 1`, `Draft 2`, and `Draft 3`.
+- Saves all generated drafts to `content/drafts/` **before** returning the response.
+- Re-reads the saved draft file and includes the confirmed saved path in the response.
+- If no file was actually written, the content-writer reports failure rather than claiming draft persistence.
+
+<Note>
+The three drafts are variations, not rankings. Each explores a different angle, opening hook, or CTA style within the same platform and topic. You choose which one to take to QA.
+</Note>
+
+## Prerequisites
+
+All three persona files must be present before generating content:
+
+```text
+personas/{active}/persona.md    ← core identity (from $interview)
+personas/{active}/nuance.md     ← voice and tone (from structuring engine)
+personas/{active}/accounts.md   ← platform account context (from structuring engine)
+```
+
+<Info>
+Run `$interview` to build a persona, then `$trend` to identify a topic, before calling `$content [platform]`. While a trend scan is not strictly required, content quality is significantly higher when it has a topic signal to work with.
+</Info>
+
+## Output
+
+Drafts are saved to:
+
+```text
+content/drafts/
+```
+
+The response includes the confirmed file path and all three drafts inline. Example structure:
+
+```text
+Saved: content/drafts/2025-07-01_x_draft.md
+
+---
+Draft 1
+[platform-native content variation 1]
+
+Draft 2
+[platform-native content variation 2]
+
+Draft 3
+[platform-native content variation 3]
+```
+
+## Guardrails & Notes
+
+<Warning>
+The content-writer must write a file before it reports success. If you receive a response without a confirmed `content/drafts/` path, the save failed — re-run the command.
+</Warning>
+
+- Platform argument is required. Calling `$content` without a platform will result in an error or undefined behaviour.
+- The content-writer reads `accounts.md` for platform account context. If this file is missing, drafts may lack account-specific nuance (handle, bio alignment, follower signal).
+- Draft files are used as the default input by `$qa`. The most recently saved file in `content/drafts/` is picked up automatically.
+
+## Related agent
+
+The `$content` skill is executed by the **content-writer** agent. See the [Content-writer agent page](/agents/content-writer) for details on persona-conditioned drafting, platform pattern adaptation, and CTA shaping.

@@ -1,0 +1,239 @@
+---
+title: "The Polysona Persona Model: Three-File Architecture"
+sidebarTitle: "Persona Model"
+description: "Polysona structures psychological identity into three PLOON-format files: persona.md, nuance.md, and accounts.md — each with a distinct role."
+---
+
+Polysona models a person not as a single monolithic identity, but as a structured set of machine-readable files. Every persona lives in its own directory under `personas/{id}/`, composed of exactly three Markdown files in PLOON format. Each file captures a different dimension of identity: the deep psychological core, the voice and platform expression layer, and the external reference models used for calibration. Together they form the complete input set for every Polysona agent — from interview extraction to content generation to QA simulation.
+
+## Three-File Overview
+
+<CardGroup cols={3}>
+  <Card title="persona.md" icon="brain">
+    Core identity structure: unconscious patterns, decision logic, energy profile, and blind spots. The primary target for the Profiler agent's interview log.
+  </Card>
+  <Card title="nuance.md" icon="pen-nib">
+    Voice register and platform-specific expression patterns. Defines tone, style, emoji density, and phrase preferences per channel.
+  </Card>
+  <Card title="accounts.md" icon="users">
+    Role models and virtual audience profiles. Benchmarks concrete figures and simulates target reader responses for QA.
+  </Card>
+</CardGroup>
+
+## Directory Structure
+
+```
+personas/
+├── _active.md          ← sets the active persona ID (falls back to "default")
+└── {id}/
+    ├── persona.md      ← core identity, decide, energy, blind, interview-log
+    ├── nuance.md       ← voice register + platform expression tables
+    └── accounts.md     ← rolemodel + virtual audience tables
+```
+
+### Active Persona Resolution
+
+Polysona reads `personas/_active.md` to determine which persona is currently loaded. If the file is absent or empty, it falls back to `personas/default/`. This allows you to switch between multiple persona datasets without changing any agent configuration.
+
+---
+
+## `persona.md` — Core Identity File
+
+`persona.md` is the structural heart of a persona. It contains five sections, each with a specific psychological purpose.
+
+### Sections
+
+<AccordionGroup>
+  <Accordion title="## core — Identity Architecture">
+    The `core` section holds three ego-layer rows in a typed PLOON table:
+
+    | Layer | What it captures |
+    |---|---|
+    | `unconscious-self` | Deep narrative identity, meaning-making patterns (sourced from McAdams, Laddering, Zen Koan) |
+    | `conscious-ideal` | The self-image the person explicitly endorses (sourced from direct input, Laddering) |
+    | `others-see-me` | How external observers describe the person (sourced from Johari Window) |
+
+    These three rows form the primary contradiction surface — the Profiler agent compares them to detect GAP signals.
+  </Accordion>
+
+  <Accordion title="## decide — Decision Logic">
+    The `decide` section stores a ranked priority list with approach descriptions. Each row maps to a framework source (typically Laddering or Repertory Grid). It answers: *when this person must choose, what do they optimize for, and how do they move?*
+  </Accordion>
+
+  <Accordion title="## energy — Activation Profile">
+    The `energy` section records what activates versus drains the person, with context modifiers. It is used during content generation to gauge when the persona's voice is likely to be most engaged or most guarded.
+  </Accordion>
+
+  <Accordion title="## blind — Blind Spots and Defense Patterns">
+    The `blind` section has two row types:
+
+    - `johari` — gaps between self-perception and observer feedback (sourced from Johari Window, 五倫)
+    - `defense` — protective IFS parts and stress-triggered coping behaviors (sourced from IFS, Projective Technique)
+
+    These entries are hypothesis-grade until confirmed by cross-framework evidence.
+  </Accordion>
+
+  <Accordion title="## interview-log — Chronological Extraction Record">
+    The `interview-log` section stores every insight the Profiler agent appended, in strict chronological order using date-stamped PLOON entries. It is **append-only** — previous entries are never overwritten or reordered.
+
+    Each line follows one of two formats:
+    ```
+    ~YYYY-MM-DD: FrameworkName: extracted content
+    ~YYYY-MM-DD: GAP: LayerA (description) ↔ LayerB (description) - contradiction
+    ```
+
+    A session closure also appends a `Summary:` line consolidating the session's top signals.
+  </Accordion>
+</AccordionGroup>
+
+### Real Example: `personas/default/persona.md`
+
+<Accordion title="View full persona.md content">
+```markdown
+# Persona: TestUser
+
+name: TestUser
+
+## core
+
+[table#1](layer,value,source)
+unconscious-self|빠른 실행과 반복을 통해 의미를 만드는 사람|McAdams Life Story
+conscious-ideal|단순하고 명확한 것을 추구하는 미니멀리스트|Laddering
+others-see-me|결과 지향적이고 추진력이 강한 사람|Johari Window
+
+## decide
+
+[table#1](priority,approach,source)
+1|속도 우선, 완벽보다 출시|Laddering
+2|데이터 기반 의사결정|Repertory Grid
+3|최소 단위부터 시작|Clean Language
+
+## energy
+
+[table#1](source,level,context)
+새로운 아이디어 탐색|높음|항상
+반복 작업|낮음|루틴 상황
+사람들과의 협업|중간|프로젝트 초기
+
+## blind
+
+[table#1](type,description,source)
+johari|검증 없이 빠르게 진행하는 경향|Johari Window
+defense|불확실성에서 과도한 행동으로 통제 회복|IFS
+
+## interview-log
+
+~2026-03-29: McAdams Life Story: 삶의 전환점은 첫 번째 프로젝트 실패에서 재건으로의 여정이었다.
+~2026-03-29: Laddering (+MI+ACT): 속도 -> 기회 포착 -> 무관련성에 대한 두려움 (terminal value: 자율성).
+~2026-03-29: Clean Language: 반복적인 은유 '돌파구 직전의 엔진 과열'.
+~2026-03-29: Johari Window: 동료들은 강한 추진력이지만 검증을 위한 멈춤이 부족하다고 보고함.
+~2026-03-29: IFS: 불확실성 속에서 보호자 파트가 과기능; 추방자는 실패 수치와 연결됨.
+~2026-03-29: Repertory Grid: 안정적/느린 것보다 대담/빠른 것을 선호 (되돌릴 수 없는 위험 제외).
+~2026-03-29: GAP: conscious-ideal(minimal clarity) vs unconscious-self(complexity accumulation under pressure).
+~2026-03-29: Summary: 스토리 아크가 반응적 생존에서 의도적 저자로 이동; 원하는 단순함과 보호적 복잡성 사이의 모순이 남아있음.
+```
+</Accordion>
+
+---
+
+## `nuance.md` — Voice and Platform Layer
+
+`nuance.md` stores expression patterns that sit above raw identity. While `persona.md` answers *who this person is*, `nuance.md` answers *how they sound*.
+
+### `## voice` Table
+
+The `voice` section uses a three-column table: `register`, `style`, and `avoid`. Each row defines a speech register (e.g., casual conversational, semi-formal) alongside what distinguishes it and what to avoid contaminating it with. These registers are extracted by the Profiler via the Clean Language framework, which surfaces the persona's own metaphor vocabulary.
+
+### `## platform` Table
+
+The `platform` section maps each publishing channel to its tone, hook pattern, and emoji density. Polysona's five MVP platforms (X, Threads, LinkedIn, Naver Blog, Brunch) each carry distinct audience expectations and formatting norms.
+
+### `## phrasing` Table
+
+The `phrasing` section marks specific phrases as `prefer` or `avoid`. This allows content-generation agents to stay within the persona's authentic voice rather than defaulting to generic filler.
+
+### Real Example: `personas/default/nuance.md`
+
+<Accordion title="View full nuance.md content">
+```markdown
+# Nuance: TestUser
+
+## voice
+
+[table#1](register,style,avoid)
+해요체 | 간결하고 직접적 | 과도한 존댓말, 불필요한 수식어
+구어체 | 친근하고 솔직한 | 격식체, 수동태 남용
+
+## platform
+
+[table#1](platform,tone,hook_pattern,emoji_density)
+x | 짧고 날카로운 | 솔직히 ~ | 낮음
+threads | 대화형, 질문 유도 | 요즘 ~ | 중간
+linkedin | 전문가적, 스토리 중심 | 지난 N년간 ~ | 없음
+naver-blog | 경험 공유, 리뷰형 | ~ 해봤는데 | 높음
+brunch | 에세이형, 감성적 | ~ 라는 생각이 들었다 | 없음
+
+## phrasing
+
+[table#1](type,example)
+avoid | 사실 솔직히 말하면
+avoid | 제가 생각하기에는
+prefer | 직접 경험한 것은
+prefer | 데이터가 보여주는 것은
+```
+</Accordion>
+
+---
+
+## `accounts.md` — Role Models and Virtual Audience
+
+`accounts.md` provides external calibration references. It serves two distinct agent use cases: trend detection (which looks at `rolemodel`) and QA simulation (which looks at `virtual`).
+
+### `## rolemodel` Table
+
+Each rolemodel row captures a real-world figure, their platform, *why* they serve as a benchmark, and their characteristic signal. During trend detection, the system watches for content patterns that align with these benchmarks.
+
+### `## virtual` Table
+
+Virtual audience rows describe simulated reader profiles with their primary concern and expectation. QA agents use these profiles to stress-test drafted content against the personas' target readers before publishing.
+
+### Real Example: `personas/default/accounts.md`
+
+<Accordion title="View full accounts.md content">
+```markdown
+# Accounts: TestUser
+
+## rolemodel
+
+[table#1](name,platform,why,signal)
+Paul Graham | x | 간결하고 통찰력 있는 글쓰기 | 짧은 문장, 직접적 관찰
+Naval Ravikant | x | 철학적 깊이와 실용성 결합 | 역설적 표현, 긴 호흡
+김창준 | linkedin | 한국 개발자 커뮤니티 영향력 | 경험 기반 인사이트
+
+## virtual
+
+[table#1](profile,concern,expectation)
+20대 여성 직장인 | 실용적 조언 원함 | 공감 가능한 사례
+30대 남성 개발자 | 기술적 정확성 | 구체적 데이터
+스타트업 창업자 | 빠른 실행 가능성 | 핵심만 간결하게
+```
+</Accordion>
+
+---
+
+## Context Loading by Task
+
+Different agent tasks load different subsets of the three files. The rules are defined in `CLAUDE.md` and enforced at runtime:
+
+| Task | Files Loaded |
+|---|---|
+| Interview session | `persona.md` + interview skill references + latest interview-log |
+| Persona introduction | All three files |
+| Trend detection | `accounts.md` rolemodel + domain references |
+| Content generation | `persona.md` core/decide/energy/blind + `nuance.md` voice/platform |
+| QA simulation | Generated draft + `accounts.md` rolemodel/virtual |
+| Publishing and tracking | Final draft + account mapping + performance records |
+
+<Note>
+  Every persona dataset is stored as plain Markdown files. Git is the database and history ledger — all changes are version-controlled automatically.
+</Note>

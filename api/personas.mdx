@@ -1,0 +1,342 @@
+---
+title: "Personas REST API: List, Read, and Simulate"
+sidebarTitle: "Personas"
+description: "REST endpoints for reading persona data, interview logs, and running QA simulations. All data is sourced from PLOON-format Markdown files under personas/."
+---
+
+The personas endpoints give you programmatic access to everything Polysona knows about a persona: the structured psychological profile, voice nuances, platform accounts, interview logs, and a scored QA simulation across 20 representative follower archetypes. All data is parsed at request time from PLOON-format Markdown files on disk — there is no caching layer.
+
+---
+
+## GET /api/personas
+
+Returns all persona directories found under `personas/`, sorted alphabetically by ID. The `name` field is read from the `name:` key in each persona's `persona.md` file. If that file is missing, the directory name is used as a fallback.
+
+```bash
+curl http://localhost:3000/api/personas
+```
+
+**Example response**
+
+```json
+[
+  { "id": "default", "name": "TestUser" },
+  { "id": "techfounder", "name": "Alex Kim" }
+]
+```
+
+<ResponseField name="id" type="string">
+  The persona's directory name under `personas/`. Used as the `:id` path parameter for all other persona endpoints.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The value of the `name:` key from the persona's `persona.md`. Falls back to the directory name if the file is absent.
+</ResponseField>
+
+---
+
+## GET /api/personas/:id
+
+Returns the full parsed PLOON data for a single persona, combining all three source files: `persona.md`, `nuance.md`, and `accounts.md`. Each file is parsed independently and returned under its respective key. If a file does not exist in the persona directory, the corresponding key is returned as an empty object `{}`.
+
+Returns `404` if the persona directory does not exist or is empty.
+
+<ParamField path="id" type="string" required>
+  The persona directory name (e.g. `default`). Must match an existing subdirectory under `personas/`.
+</ParamField>
+
+```bash
+curl http://localhost:3000/api/personas/default
+```
+
+**Example response**
+
+```json
+{
+  "id": "default",
+  "name": "TestUser",
+  "persona": {
+    "name": "TestUser",
+    "core": {
+      "table": [
+        { "layer": "unconscious-self", "value": "빠른 실행과 반복을 통해 의미를 만드는 사람", "source": "McAdams Life Story" },
+        { "layer": "conscious-ideal", "value": "단순하고 명확한 것을 추구하는 미니멀리스트", "source": "Laddering" },
+        { "layer": "others-see-me", "value": "결과 지향적이고 추진력이 강한 사람", "source": "Johari Window" }
+      ]
+    },
+    "decide": {
+      "table": [
+        { "priority": "1", "approach": "속도 우선, 완벽보다 출시", "source": "Laddering" }
+      ]
+    },
+    "interview-log": {
+      "entries": [
+        { "date": "2026-03-29", "content": "McAdams Life Story: 삶의 전환점은 첫 번째 프로젝트 실패에서 재건으로의 여정이었다." }
+      ]
+    }
+  },
+  "nuance": {
+    "voice": {
+      "table": [
+        { "register": "해요체", "style": "간결하고 직접적", "avoid": "과도한 존댓말, 불필요한 수식어" }
+      ]
+    },
+    "platform": {
+      "table": [
+        { "platform": "x", "tone": "짧고 날카로운", "hook_pattern": "솔직히 ~", "emoji_density": "낮음" }
+      ]
+    }
+  },
+  "accounts": {
+    "rolemodel": {
+      "table": [
+        { "name": "Paul Graham", "platform": "x", "why": "간결하고 통찰력 있는 글쓰기", "signal": "짧은 문장, 직접적 관찰" }
+      ]
+    }
+  }
+}
+```
+
+<ResponseField name="id" type="string">
+  The persona directory name.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name from `persona.md`. Falls back to `id` if not set.
+</ResponseField>
+
+<ResponseField name="persona" type="object">
+  Parsed contents of `persona.md`. Structure depends on the sections and tables defined in that file. Returns `{}` if the file does not exist.
+</ResponseField>
+
+<ResponseField name="nuance" type="object">
+  Parsed contents of `nuance.md`. Contains voice register, platform tone rules, and phrasing preferences. Returns `{}` if the file does not exist.
+</ResponseField>
+
+<ResponseField name="accounts" type="object">
+  Parsed contents of `accounts.md`. Contains role model references and virtual follower profiles. Returns `{}` if the file does not exist.
+</ResponseField>
+
+---
+
+## GET /api/personas/:id/interview-log
+
+Returns the parsed interview log entries from the `## interview-log` section of a persona's `persona.md`. Each entry corresponds to a date-stamped line in the PLOON source (lines starting with `~YYYY-MM-DD:`).
+
+Returns `404` if the persona's `persona.md` file does not exist.
+
+<ParamField path="id" type="string" required>
+  The persona directory name.
+</ParamField>
+
+```bash
+curl http://localhost:3000/api/personas/default/interview-log
+```
+
+**Example response**
+
+```json
+{
+  "id": "default",
+  "interviewLog": [
+    {
+      "date": "2026-03-29",
+      "content": "McAdams Life Story: 삶의 전환점은 첫 번째 프로젝트 실패에서 재건으로의 여정이었다."
+    },
+    {
+      "date": "2026-03-29",
+      "content": "Laddering (+MI+ACT): 속도 -> 기회 포착 -> 무관련성에 대한 두려움 (terminal value: 자율성)."
+    },
+    {
+      "date": "2026-03-29",
+      "content": "Clean Language: 반복적인 은유 '돌파구 직전의 엔진 과열'."
+    },
+    {
+      "date": "2026-03-29",
+      "content": "Summary: 스토리 아크가 반응적 생존에서 의도적 저자로 이동; 원하는 단순함과 보호적 복잡성 사이의 모순이 남아있음."
+    }
+  ]
+}
+```
+
+<ResponseField name="id" type="string">
+  The persona ID as provided in the path parameter.
+</ResponseField>
+
+<ResponseField name="interviewLog" type="array">
+  Array of log entries parsed from the `## interview-log` section of `persona.md`.
+
+  <Expandable title="interviewLog entry">
+    <ResponseField name="date" type="string">
+      ISO date string in `YYYY-MM-DD` format, parsed from the `~YYYY-MM-DD:` prefix in the source file.
+    </ResponseField>
+    <ResponseField name="content" type="string">
+      The text content of the log entry, following the date prefix on that line.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## GET /api/personas/:id/qa-simulation
+
+Runs a scored QA simulation for a persona against all 20 follower archetypes. Each archetype receives a score across five dimensions. Scores are **deterministic** — the same persona ID, follower ID, dimension, and content name always produce the same score, making results reproducible and diffable.
+
+Returns `404` if none of the three PLOON files (`persona.md`, `nuance.md`, `accounts.md`) exist for the given persona ID.
+
+<ParamField path="id" type="string" required>
+  The persona directory name.
+</ParamField>
+
+<ParamField query="content" type="string">
+  Optional content name string. Including this parameter makes scores specific to that piece of content — useful when simulating how a particular post would perform across follower types. If omitted, scores reflect the persona alone.
+</ParamField>
+
+```bash
+# Simulate without specific content
+curl http://localhost:3000/api/personas/default/qa-simulation
+
+# Simulate for a specific content piece
+curl "http://localhost:3000/api/personas/default/qa-simulation?content=my-draft-post"
+```
+
+**Example response**
+
+```json
+{
+  "personaId": "default",
+  "contentName": "my-draft-post",
+  "followers": [
+    {
+      "id": "f04",
+      "label": "startup founder",
+      "age": 29,
+      "gender": "M",
+      "occupation": "founder",
+      "scores": {
+        "hook": 82,
+        "empathy": 71,
+        "share": 88,
+        "cta": 65,
+        "platform_fit": 79
+      },
+      "total": 385,
+      "isTop5": true
+    },
+    {
+      "id": "f02",
+      "label": "30s male developer",
+      "age": 32,
+      "gender": "M",
+      "occupation": "dev",
+      "scores": {
+        "hook": 74,
+        "empathy": 68,
+        "share": 77,
+        "cta": 59,
+        "platform_fit": 83
+      },
+      "total": 361,
+      "isTop5": true
+    }
+  ],
+  "top5": [ "...top 5 follower objects..." ],
+  "generatedAt": "2026-03-29T12:00:00.000Z"
+}
+```
+
+<ResponseField name="personaId" type="string">
+  The persona ID used in the simulation.
+</ResponseField>
+
+<ResponseField name="contentName" type="string">
+  The `content` query parameter value, or an empty string if not provided.
+</ResponseField>
+
+<ResponseField name="followers" type="array">
+  All 20 follower archetypes with scores, sorted by `total` descending (highest total first).
+
+  <Expandable title="follower object">
+    <ResponseField name="id" type="string">
+      Archetype identifier (`f01` through `f20`).
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Human-readable archetype description (e.g. `"30s male developer"`).
+    </ResponseField>
+    <ResponseField name="age" type="number">
+      Representative age for the archetype.
+    </ResponseField>
+    <ResponseField name="gender" type="string">
+      `"F"`, `"M"`, or `"NB"`.
+    </ResponseField>
+    <ResponseField name="occupation" type="string">
+      Short occupation tag (e.g. `"dev"`, `"founder"`, `"marketing"`).
+    </ResponseField>
+    <ResponseField name="scores" type="object">
+      Five scored dimensions, each an integer in the range **40–95**.
+
+      <Expandable title="scores object">
+        <ResponseField name="hook" type="number">
+          How effectively the content grabs this archetype's attention (40–95).
+        </ResponseField>
+        <ResponseField name="empathy" type="number">
+          How well the content resonates emotionally with this archetype (40–95).
+        </ResponseField>
+        <ResponseField name="share" type="number">
+          Likelihood that this archetype would share or reshare the content (40–95).
+        </ResponseField>
+        <ResponseField name="cta" type="number">
+          Likelihood that this archetype would act on a call to action (40–95).
+        </ResponseField>
+        <ResponseField name="platform_fit" type="number">
+          How well the content format fits this archetype's typical platform usage (40–95).
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="total" type="number">
+      Sum of all five dimension scores. Maximum possible value is 475 (5 × 95).
+    </ResponseField>
+    <ResponseField name="isTop5" type="boolean">
+      `true` if this follower ranks in the top 5 by total score for this simulation run.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="top5" type="array">
+  The five follower objects with the highest `total` scores. Same shape as individual entries in `followers`.
+</ResponseField>
+
+<ResponseField name="generatedAt" type="string">
+  ISO 8601 timestamp of when the simulation was run.
+</ResponseField>
+
+### Follower Archetypes Reference
+
+All 20 archetypes used in every simulation:
+
+| ID | Label | Age | Gender | Occupation |
+|----|-------|-----|--------|------------|
+| f01 | 20s female office worker | 24 | F | office |
+| f02 | 30s male developer | 32 | M | dev |
+| f03 | 40s self-employed | 43 | M | self |
+| f04 | startup founder | 29 | M | founder |
+| f05 | general follower | 27 | F | general |
+| f06 | 20s male student | 21 | M | student |
+| f07 | 30s female marketer | 35 | F | marketing |
+| f08 | 40s male executive | 47 | M | executive |
+| f09 | 20s female creator | 23 | F | creator |
+| f10 | 30s male engineer | 31 | M | engineer |
+| f11 | 50s female entrepreneur | 52 | F | entrepreneur |
+| f12 | 20s non-binary designer | 26 | NB | design |
+| f13 | 30s male product manager | 34 | M | pm |
+| f14 | 40s female educator | 41 | F | education |
+| f15 | 20s male gamer | 22 | M | gaming |
+| f16 | 30s female researcher | 33 | F | research |
+| f17 | 40s male consultant | 44 | M | consulting |
+| f18 | 20s female influencer | 25 | F | influencer |
+| f19 | 30s male journalist | 37 | M | media |
+| f20 | 50s male investor | 55 | M | investor |
+
+<Tip>
+  Scores are computed with a deterministic hash over `personaId + followerId + dimension + contentName`. The same inputs always produce the same score, so you can safely diff simulation results across persona edits or content drafts.
+</Tip>

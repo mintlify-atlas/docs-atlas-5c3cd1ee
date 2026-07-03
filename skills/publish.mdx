@@ -1,0 +1,88 @@
+---
+title: "$publish / /publish: Save Final Content and Get Publishing Guidance"
+sidebarTitle: "publish"
+description: "Dispatch the admin agent to save approved content to the published folder, generate a platform-specific publishing checklist, and capture metadata for performance tracking."
+---
+
+The `$publish` / `/publish` command dispatches the **admin** agent to finalise the content lifecycle. It saves the approved draft to `content/published/`, generates a step-by-step platform-specific publishing checklist, and captures metadata fields for follow-up performance tracking. Run it after you have reviewed the QA recommendations and selected a draft to go live.
+
+## Invocation
+
+<CodeGroup>
+```bash Codex
+$publish
+```
+
+```bash Claude Code
+/publish
+```
+</CodeGroup>
+
+## What it does
+
+- Triggers the **admin** agent to manage the final stage of the content pipeline.
+- Saves final content to `content/published/` — **the file must be created before the agent responds**.
+- Re-reads the saved file and includes the confirmed saved path in the response.
+- Generates a **platform-specific publishing checklist** step by step, covering the actions needed to post on the target platform.
+- Includes **metadata fields** for follow-up performance tracking (e.g. publish timestamp, platform, topic, persona identifier).
+- If no file was actually written, the admin reports failure instead of claiming success.
+
+<Note>
+The admin agent enforces a write-then-confirm pattern: it will not return a success response without first proving the file exists at the reported path. This prevents silent save failures from being mistaken for successful publishes.
+</Note>
+
+## Prerequisites
+
+A QA-reviewed draft should exist before publishing. While `$publish` does not technically block on a QA file, the recommended pipeline sequence is:
+
+```text
+$interview → $trend → $content [platform] → $qa → $publish
+```
+
+```text
+content/drafts/     ← approved draft to be published
+content/qa/         ← QA report confirming the draft is ready (recommended)
+```
+
+<Info>
+If you skip `$qa`, the admin will still run. However, publishing without a QA pass means you are skipping persona-alignment and platform-fit validation.
+</Info>
+
+## Output
+
+The final content and associated metadata are saved to:
+
+```text
+content/published/
+```
+
+The response includes the confirmed file path, the publishing checklist, and the metadata block. Example structure:
+
+```text
+Saved: content/published/2025-07-01_linkedin_final.md
+
+Publishing Checklist
+1. [Platform-specific step]
+2. [Platform-specific step]
+...
+
+Metadata
+- Published: 2025-07-01T10:30:00Z
+- Platform: linkedin
+- Persona: default
+- Topic: [topic]
+```
+
+## Guardrails & Notes
+
+<Warning>
+The admin must write the published file before returning any success response. If the confirmed path is absent from the response, the publish failed — do not proceed with platform posting until the file is confirmed saved.
+</Warning>
+
+- The publishing checklist is generated from the target platform identified in the draft filename or content metadata. Ensure the platform is clearly signalled in the draft.
+- Metadata fields are intended for manual or automated performance tracking. They are written to the published file header — review them before posting to ensure accuracy.
+- `content/published/` is the final, authoritative record of what went live. Do not edit files in this directory after posting; create a new draft instead.
+
+## Related agent
+
+The `$publish` skill is executed by the **admin** agent. See the [Admin agent page](/agents/admin) for details on publishing flow, scheduling, metadata capture, and feedback loop updates.

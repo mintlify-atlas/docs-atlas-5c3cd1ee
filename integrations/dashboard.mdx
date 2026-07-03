@@ -1,0 +1,132 @@
+---
+title: "Run the Polysona Local-First Dashboard"
+sidebarTitle: "Dashboard"
+description: "Launch the Hono + React dashboard with bun run dev to visualize personas, monitor agent status, inspect the content pipeline, and explore QA simulations locally."
+---
+
+Polysona includes a local-first fullstack dashboard to inspect your persona data and pipeline state without leaving your machine. The dashboard is built on a Hono server (running on Bun) and a React 19 client, communicates over a set of `/api/*` routes, and exposes everything the pipeline produces — personas, agent status, content drafts, and published files — as readable views. It does not write to or modify any persona files.
+
+## Starting the Dashboard
+
+`bun run dev` builds the React client first, then starts the Hono server:
+
+```bash
+bun run dev
+# Open http://localhost:3000
+```
+
+<Note>
+  `bun run dev` runs `vite build` followed by `bun run server/index.ts`. The server looks for `dist/index.html` and, if it exists, serves the built client from `dist/`. If you need to rebuild the client separately (e.g. after editing the React source), run `bun run build` first.
+</Note>
+
+The server binds to port `3000` by default. Set the `PORT` environment variable to override:
+
+```bash
+PORT=4000 bun run dev
+```
+
+## Dashboard Pages
+
+<CardGroup cols={2}>
+  <Card title="Home" icon="house">
+    System status overview: version number, workspace path, persona count, and a system-online indicator. Below the status grid, active personas are listed as clickable cards linking to Persona Detail. Agent status cards show all five agents. A Quick Start panel displays the Codex and Claude Code command references side-by-side.
+  </Card>
+  <Card title="Personas" icon="users">
+    Grid of all personas discovered in the `personas/` directory. Each card shows the persona name and ID and links to the full Persona Detail view. If no personas exist yet, a prompt to run `/interview` is displayed.
+  </Card>
+  <Card title="Persona Detail" icon="user">
+    Deep view for a single persona. Renders PLOON data from `persona.md` (core, decide, energy, blind tables), `nuance.md` (voice, platform tables), and `accounts.md` (accounts, ideal, rolemodel, virtual tables). Also shows Self Layer Model diagram, Gap Analysis, Voice Mix bar, Framework Coverage, and Interview Timeline derived from the interview-log section.
+  </Card>
+  <Card title="Agent Monitor" icon="monitor">
+    Live status for all five agents (profiler, trendsetter, content-writer, virtual-follower, admin). Each card reflects whether the agent's skill file exists on disk and when it last had activity. Includes a How to Invoke panel showing Codex (`$`) and Claude Code (`/`) commands side-by-side.
+  </Card>
+  <Card title="Content Pipeline" icon="arrow-right-arrow-left">
+    Drafts and published content from `content/drafts/` and `content/published/`. Files are grouped by stage and filterable by platform (x, threads, linkedin, naver-blog, brunch). Each card shows the filename, platform tag, draft/published status, and a quality meter. Links to QA simulation per file are available inline.
+  </Card>
+</CardGroup>
+
+<Info>
+  The dashboard is read-only. It visualizes data written by the agent pipeline but does not create, edit, or delete persona files or content files.
+</Info>
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Server | [Hono](https://hono.dev/) v4 on Bun |
+| Client | React 19 + React Router v7 |
+| Styling | Tailwind CSS v4 (via `@tailwindcss/vite`) |
+| Build | Vite 7 (`client/` root, output to `dist/`) |
+| Runtime | Bun |
+
+The Vite config sets `root: 'client'` and outputs to `../dist` (repo root `dist/`). The Hono server serves `dist/index.html` for all non-API routes, enabling React Router's client-side navigation.
+
+## API Endpoints
+
+The dashboard is powered by six REST endpoints under `/api`. These are also usable directly for scripting or external tooling.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/status` | Returns version, persona count, content count, and last activity timestamp |
+| `GET` | `/api/personas` | Returns a sorted list of all persona IDs and names from `personas/` |
+| `GET` | `/api/personas/:id` | Returns full PLOON data for a persona: `persona`, `nuance`, and `accounts` objects |
+| `GET` | `/api/agents/status` | Returns status for all five agents including skill file existence and last activity |
+| `GET` | `/api/content/drafts` | Returns a sorted list of filenames from `content/drafts/` |
+| `GET` | `/api/content/published` | Returns a sorted list of filenames from `content/published/` |
+
+### Example responses
+
+<CodeGroup>
+  ```json GET /api/status
+  {
+    "personaCount": 2,
+    "contentCount": 7,
+    "lastActivity": "2025-01-15T10:32:00.000Z",
+    "version": "1.3.0"
+  }
+  ```
+
+  ```json GET /api/personas
+  [
+    { "id": "creator", "name": "creator" },
+    { "id": "executive", "name": "executive" }
+  ]
+  ```
+
+  ```json GET /api/agents/status
+  [
+    {
+      "name": "profiler",
+      "description": "Deep psychology interviewer",
+      "badge": "10 frameworks",
+      "status": "idle",
+      "agentFileExists": true,
+      "skillFileExists": true,
+      "skillCount": 1,
+      "lastActivity": null
+    }
+  ]
+  ```
+
+  ```json GET /api/content/drafts
+  [
+    "x_2025-01-14_draft-01.md",
+    "linkedin_2025-01-14_draft-02.md"
+  ]
+  ```
+</CodeGroup>
+
+<Tip>
+  The `/api/personas/:id` endpoint parses PLOON-formatted markdown files and returns structured JSON. If `persona.md`, `nuance.md`, or `accounts.md` are missing for a given persona, their corresponding keys default to empty objects rather than returning an error.
+</Tip>
+
+## Building for Production
+
+If you want to serve the pre-built client without the Vite dev dependency, build first and then run the server directly:
+
+```bash
+bun run build       # vite build → dist/
+bun run server/index.ts
+```
+
+In a `NODE_ENV=production` environment the server always serves from `dist/` regardless of whether `dist/index.html` exists, so make sure `bun run build` completes successfully before deploying.

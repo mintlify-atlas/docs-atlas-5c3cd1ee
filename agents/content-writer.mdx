@@ -1,0 +1,203 @@
+---
+title: "Content-Writer Agent: Platform-Native Draft Generation"
+sidebarTitle: "Content-Writer"
+description: "The Content-Writer generates 3 persona-conditioned draft variations for a target platform, adapted to the voice and hook patterns in nuance.md."
+---
+
+The Content-Writer is Polysona's drafting engine. It takes a trend topic and a platform target, then combines your persona's motivational signature, voice register from `nuance.md`, and rolemodel style cues from `accounts.md` to produce three distinct draft variations. Each draft is written for a specific platform's native reward mechanics — not as a generic adaptation, but as a first-principles rewrite conditioned on how that platform distributes attention. The three-variation structure ensures you always have options before handing off to the virtual-follower for QA.
+
+## Configuration
+
+| Field | Value |
+|---|---|
+| `name` | `content-writer` |
+| `tools` | `Read`, `Write` |
+| Codex command | `$content [platform]` |
+| Claude Code command | `/content [platform]` |
+
+## Role
+
+The Content-Writer performs three jobs:
+
+1. **Persona-conditioned drafting** — anchors tone, motivation, and decision style to `persona.md` (core, decide, energy, blind sections).
+2. **Platform pattern adaptation** — rewrites the same topic intent for each platform's native hook and cadence patterns.
+3. **CTA shaping** — closes each draft with a call-to-action appropriate to the platform and persona voice.
+
+## Input Context Loaded
+
+Before generating, the Content-Writer loads three files from the active persona:
+
+| File | Sections Used |
+|---|---|
+| `persona.md` | `core`, `decide`, `energy`, `blind` |
+| `nuance.md` | `voice` (honorific level, phrasing constraints, avoid-list), `platform` |
+| Trend input | Topic from the latest `content/trends/` scan |
+
+## Supported Platforms
+
+<Tabs>
+  <Tab title="X (Twitter)">
+    **Pattern:** Short, sharp, controversy-bait, quote-RT inducing, thread series potential.
+
+    **Emoji density:** Low.
+
+    **Korean hook pattern:** `솔직히 ~` (Honestly, ~)
+
+    **Reward mechanic:** First line must stop the scroll. Punchline structure or sharp provocation. Content should have standalone value but invite a reply or repost.
+  </Tab>
+  <Tab title="Threads">
+    **Pattern:** Conversational, comment-inducing, topic tags, often ends with `너는?` (What about you?).
+
+    **Emoji density:** Medium.
+
+    **Reward mechanic:** Prompts conversation. Cadence is loose and approachable. Closing question is near-mandatory.
+  </Tab>
+  <Tab title="LinkedIn">
+    **Pattern:** Professional, story-focused, carousel-friendly, expert positioning.
+
+    **Emoji density:** None.
+
+    **Korean hook pattern:** `지난 N년간 ~` (Over the last N years, ~)
+
+    **Reward mechanic:** Hook → data/insight → CTA sequence. Narrative arc with a lesson. No emoji; credibility comes from structure and specificity.
+  </Tab>
+  <Tab title="Naver Blog">
+    **Pattern:** Experience sharing, review style, keyword repetition, image-first framing.
+
+    **Emoji density:** High.
+
+    **Reward mechanic:** Search-optimized. Experience narrative with a recommendation. High emoji density matches platform conventions. Keyword appears multiple times naturally.
+  </Tab>
+  <Tab title="Brunch">
+    **Pattern:** Long-form essay pacing, emotional narrative, literary tone.
+
+    **Emoji density:** None.
+
+    **Reward mechanic:** Emotional resonance over information density. Reads like personal essay. No emoji. Pacing matters more than keyword density.
+  </Tab>
+</Tabs>
+
+## Draft Generation Rules
+
+The Content-Writer produces exactly **3 draft variations** per invocation. All three share the same topic intent but are rewritten for platform-native behavior.
+
+Each draft includes:
+
+- **Hook** — the opening line designed to stop scrolling or draw the reader in
+- **Body** — the main content adapted to platform cadence
+- **CTA** — a platform-appropriate call to action
+- **Platform-fit note** — a short rationale for the draft's structural choices
+
+Across all three drafts, the Content-Writer:
+
+- Reflects persona motivation and decision style from `persona.md`
+- Respects phrasing constraints and the avoid-list from `nuance.md`
+- Uses honorific level from `nuance.md` voice register (해요체, 합쇼체, or 반말)
+- References rolemodel style patterns from `accounts.md` without copying wording
+
+## Mandatory Execution Workflow
+
+<Steps>
+  <Step title="Parse platform and topic">
+    Read the platform argument from `$ARGUMENTS` and confirm the topic from the latest trend scan or the user-provided brief.
+  </Step>
+  <Step title="Load persona context">
+    Read `persona.md`, `nuance.md`, and `accounts.md` from the active persona directory.
+  </Step>
+  <Step title="Generate 3 draft variations">
+    Produce exactly 3 drafts for the specified platform, each with hook, body, CTA, and platform-fit note.
+  </Step>
+  <Step title="Derive a filesystem-safe draft slug">
+    Generate a slug from the topic to use as the output filename.
+  </Step>
+  <Step title="Write draft file (required)">
+    Use the Write tool to save the generated output to:
+
+    ```
+    content/drafts/YYYY-MM-DD-platform-slug.md
+    ```
+
+    This step is mandatory. Do not proceed without writing the file.
+  </Step>
+  <Step title="Verify the written file">
+    Immediately use the Read tool on the saved file to confirm it exists and reflects the generated drafts. Only after successful verification, return the drafts and the confirmed saved path.
+  </Step>
+  <Step title="Report on failure">
+    If the write fails, report it explicitly. Do not claim draft persistence.
+  </Step>
+</Steps>
+
+### Draft File Template
+
+```md
+# Drafts: <PLATFORM> — <SLUG>
+
+## metadata
+
+platform     | <platform>
+generated_at | <YYYY-MM-DD>
+persona      | <persona-id>
+topic        | <topic>
+
+## draft_1
+
+<draft 1 — hook, body, CTA, platform-fit note>
+
+## draft_2
+
+<draft 2 — hook, body, CTA, platform-fit note>
+
+## draft_3
+
+<draft 3 — hook, body, CTA, platform-fit note>
+```
+
+## Example Invocations
+
+<CodeGroup>
+  ```bash X (Codex)
+  $content x
+  ```
+
+  ```bash Threads (Codex)
+  $content threads
+  ```
+
+  ```bash LinkedIn (Codex)
+  $content linkedin
+  ```
+
+  ```bash Naver Blog (Codex)
+  $content naver-blog
+  ```
+
+  ```bash Brunch (Codex)
+  $content brunch
+  ```
+</CodeGroup>
+
+<CodeGroup>
+  ```bash X (Claude Code)
+  /content x
+  ```
+
+  ```bash Threads (Claude Code)
+  /content threads
+  ```
+
+  ```bash LinkedIn (Claude Code)
+  /content linkedin
+  ```
+
+  ```bash Naver Blog (Claude Code)
+  /content naver-blog
+  ```
+
+  ```bash Brunch (Claude Code)
+  /content brunch
+  ```
+</CodeGroup>
+
+<Tip>
+  After the Content-Writer confirms the saved draft path, hand off to the virtual-follower with `$qa` / `/qa`. The virtual-follower reads from `content/drafts/` automatically.
+</Tip>
